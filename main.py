@@ -31,6 +31,8 @@ for i in range(20000):
     if i % 2 == 0:
         core.add_keys(core.KEY_A)
     core.run_frame()
+    mem.updateBuffers()
+
     RGB = np.array(screen.to_pil())[:,:,[2,1,0]]
     cv2.imshow("out", RGB)
     k = cv2.waitKey(1) & 0xFF

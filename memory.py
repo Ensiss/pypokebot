@@ -4,18 +4,34 @@ import re
 
 import utils
 
+class Buffer():
+    def __init__(self, idx, get_addr, size):
+        self.getAddr = get_addr
+
+        self.idx = idx
+        self.addr = 0
+        self.size = size
+        self.buf = None
+        self.update()
+
+    def update(self):
+        new_addr = self.getAddr()
+        if self.addr != new_addr:
+            self.addr = new_addr
+            self.buf = mgba.ffi.buffer(self.addr, self.size)
+
 class Memory():
     def __init__(self, core):
-        self.wram = mgba.ffi.buffer(core._native.memory.wram, core.memory.wram.size)
-        self.iram = mgba.ffi.buffer(core._native.memory.iwram, core.memory.iwram.size)
-        self.io = mgba.ffi.buffer(core._native.memory.io, core.memory.io.size)
-        self.vram = mgba.ffi.buffer(core._native.video.vram, core.memory.vram.size)
-        self.oam = mgba.ffi.buffer(core._native.video.oam.raw, core.memory.oam.size)
-        self.rom = mgba.ffi.buffer(core._native.memory.rom, core.memory.rom.size)
+        self.core = core
 
-        self.memmap = [None,
-                       None,
-                       self.wram, # 0x2000000
+        self.wram = Buffer(2, (lambda: core._native.memory.wram), core.memory.wram.size)
+        self.iram = Buffer(3, (lambda: core._native.memory.iwram), core.memory.iwram.size)
+        self.io = Buffer(4, (lambda: core._native.memory.io), core.memory.io.size)
+        self.vram = Buffer(6, (lambda: core._native.video.vram), core.memory.vram.size)
+        self.oam = Buffer(7, (lambda: core._native.video.oam.raw), core.memory.oam.size)
+        self.rom = Buffer(8, (lambda: core._native.memory.rom), core.memory.rom.size)
+
+        self.memmap = [self.wram, # 0x2000000
                        self.iram, # 0x3000000
                        self.io,   # 0x4000000
                        None,
@@ -23,11 +39,16 @@ class Memory():
                        self.oam,  # 0x7000000
                        self.rom]  # 0x8000000
 
+    def updateBuffers(self):
+        for buf in self.memmap:
+            if buf is not None:
+                buf.update()
+
     def mapIdx(self, addr):
         """
         Returns the memory map index of a given address
         """
-        return (addr & 0xFF000000) >> 24
+        return ((addr & 0xFF000000) >> 24) - 2
 
     def unpack(self, addr, fmt, buf=None):
         """
@@ -59,7 +80,7 @@ class Memory():
             expanded = _expandFmt(fmt)
             old_fmt = fmt
             fmt = fmt.replace("S", "s")
-        unpacked = struct.unpack_from("<"+fmt, buf, addr & 0xFFFFFF)
+        unpacked = struct.unpack_from("<"+fmt, buf.buf, addr & 0xFFFFFF)
         if expanded is not None:
             if len(unpacked) != len(expanded):
                 print("Unpack: incorrect expansion '%s' @ 0x%08X" % (old_fmt, addr))
