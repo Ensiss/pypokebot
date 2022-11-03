@@ -44,6 +44,8 @@ class Memory():
             out = []
             for group in re.findall("\d*\w", fmt):
                 char = group[-1]
+                if char == "x":
+                    continue
                 repeat = 1
                 if len(group) > 1 and char.lower() != "s":
                     repeat = int(group[:-1])
