@@ -1,5 +1,8 @@
 import mgba.core
 import struct
+import re
+
+import utils
 
 class Memory():
     def __init__(self, core):
@@ -30,11 +33,37 @@ class Memory():
         """
         Unpack variables at 'addr' using formating from the struct module
         Endian is automatically added to the formatting string
-        If 'buf' is not specified, infer the buffer from the address
+        If 'buf' is not specified, the buffer is inferred from the address
+        An additional format "S" automatically decodes Pokemon charset strings
         """
+        def _expandFmt(fmt):
+            """
+            Expands repeat counters in format strings
+            Ex: 4B8s2i -> BBBBsii
+            """
+            out = []
+            for group in re.findall("\d*\w", fmt):
+                char = group[-1]
+                repeat = 1
+                if len(group) > 1 and char.lower() != "s":
+                    repeat = int(group[:-1])
+                out += char * repeat
+            return out
+
         if buf is None:
             buf = self.memmap[self.mapIdx(addr)]
-        return struct.unpack_from("<"+fmt, buf, addr & 0xFFFFFF)
+        expanded = None
+        if "S" in fmt:
+            expanded = _expandFmt(fmt)
+            old_fmt = fmt
+            fmt = fmt.replace("S", "s")
+        unpacked = struct.unpack_from("<"+fmt, buf, addr & 0xFFFFFF)
+        if expanded is not None:
+            if len(unpacked) != len(expanded):
+                print("Unpack: incorrect expansion '%s' @ 0x%08X" % (old_fmt, addr))
+                return unpacked
+            unpacked = tuple((utils.pokeToAscii(x) if expanded[i] == "S" else x) for i,x in enumerate(unpacked))
+        return unpacked
 
     def readU8(self, addr, buf=None):
         return self.unpack(addr, "B", buf)[0]
