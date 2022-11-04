@@ -52,6 +52,13 @@ class Map():
         name_addr = mem.readU32(0x083F1CAC + (self.map_hdr.label_id - 88) * 4)
         self.name = mem.readPokeStr(name_addr)
 
+        # Map scripts
+        self.map_scripts = []
+        i = 0
+        while mem.readU8(self.map_hdr.script_ptr + 5 * i) > 0:
+            self.map_scripts.append(MapScript(self.map_hdr.script_ptr + 5 * i))
+            i += 1
+
         # Map data handling
         rom = mem.Memory.instance.rom.buf
         data_ptr = data_hdr.data_ptr & 0xFFFFFF
@@ -165,19 +172,19 @@ class WildHeader:
          self.map_id) = unpacked[:2]
         self.entry_ptr = list(unpacked[2:])
 
-class MapScriptHeader(utils.RawStruct):
+class MapScript(utils.RawStruct):
     fmt = "BI"
     def __init__(self, addr):
         (self.type,
          self.script_ptr) = super().__init__(addr)
-
-class MapScript(utils.RawStruct):
-    fmt = "IBHH"
-    def __init__(self, addr):
-        (self.script_ptr,
-         self.type,
-         self.var,
-         self.value) = super().__init__(addr)
+        if (self.type == MapScriptType.VALIDATE_LOAD_1 or
+            self.type == MapScriptType.VALIDATE_LOAD_2):
+            (self.var,
+             self.value,
+             self.script_ptr) = mem.unpack(self.script_ptr, "HHI")
+        else:
+            self.var = 0
+            self.value = 0
 
 class SignEvent(utils.RawStruct):
     fmt = "2H2BI"
