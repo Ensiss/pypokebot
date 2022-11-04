@@ -20,7 +20,7 @@ class Buffer():
             self.addr = new_addr
             self.buf = mgba.ffi.buffer(self.addr, self.size)
 
-class Memory():
+class Memory(object):
     def __init__(self, core):
         self.core = core
 
@@ -38,11 +38,6 @@ class Memory():
                        self.vram, # 0x6000000
                        self.oam,  # 0x7000000
                        self.rom]  # 0x8000000
-
-    def updateBuffers(self):
-        for buf in self.memmap:
-            if buf is not None:
-                buf.update()
 
     def mapIdx(self, addr):
         """
@@ -88,15 +83,27 @@ class Memory():
             unpacked = tuple((utils.pokeToAscii(x) if expanded[i] == "S" else x) for i,x in enumerate(unpacked))
         return unpacked
 
-    def readU8(self, addr, buf=None):
-        return self.unpack(addr, "B", buf)[0]
-    def readU16(self, addr, buf=None):
-        return self.unpack(addr, "H", buf)[0]
-    def readU32(self, addr, buf=None):
-        return self.unpack(addr, "I", buf)[0]
-    def readS8(self, addr, buf=None):
-        return self.unpack(addr, "b", buf)[0]
-    def readS16(self, addr, buf=None):
-        return self.unpack(addr, "h", buf)[0]
-    def readS32(self, addr, buf=None):
-        return self.unpack(addr, "i", buf)[0]
+def unpack(addr, fmt, buf=None):
+    return Memory.instance.unpack(addr, fmt, buf)
+def readU8(addr, buf=None):
+    return Memory.instance.unpack(addr, "B", buf)[0]
+def readU16(addr, buf=None):
+    return Memory.instance.unpack(addr, "H", buf)[0]
+def readU32(addr, buf=None):
+    return Memory.instance.unpack(addr, "I", buf)[0]
+def readS8(addr, buf=None):
+    return Memory.instance.unpack(addr, "b", buf)[0]
+def readS16(addr, buf=None):
+    return Memory.instance.unpack(addr, "h", buf)[0]
+def readS32(addr, buf=None):
+    return Memory.instance.unpack(addr, "i", buf)[0]
+
+def init(core):
+    if not hasattr(Memory, "instance"):
+        Memory.instance = Memory(core)
+    return Memory.instance
+
+def updateBuffers():
+    for buf in Memory.instance.memmap:
+        if buf is not None:
+            buf.update()

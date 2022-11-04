@@ -10,7 +10,8 @@ import mgba.core
 import mgba.image
 import mgba.log
 
-from memory import Memory
+import memory as mem
+import world
 
 parser = argparse.ArgumentParser(description="Pokebot")
 parser.add_argument("-r", "--rom", type=str, default=os.path.expanduser("~/Games/Pokemon - FireRed Version (USA).gba"),
@@ -24,7 +25,7 @@ core.autoload_save()
 screen = mgba.image.Image(*core.desired_video_dimensions())
 core.set_video_buffer(screen)
 core.reset()
-mem = Memory(core)
+mem.init(core)
 
 for i in range(20000):
     core.clear_keys(core.KEY_A)
