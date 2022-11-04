@@ -39,12 +39,6 @@ class Memory(object):
                        self.oam,  # 0x7000000
                        self.rom]  # 0x8000000
 
-    def mapIdx(self, addr):
-        """
-        Returns the memory map index of a given address
-        """
-        return ((addr & 0xFF000000) >> 24) - 2
-
     def unpack(self, addr, fmt, buf=None):
         """
         Unpack variables at 'addr' using formating from the struct module
@@ -69,7 +63,7 @@ class Memory(object):
             return out
 
         if buf is None:
-            buf = self.memmap[self.mapIdx(addr)]
+            buf = self.memmap[mapIdx(addr)]
         expanded = None
         if "S" in fmt:
             expanded = _expandFmt(fmt)
@@ -97,6 +91,16 @@ def readS16(addr, buf=None):
     return Memory.instance.unpack(addr, "h", buf)[0]
 def readS32(addr, buf=None):
     return Memory.instance.unpack(addr, "i", buf)[0]
+def readPokeStr(addr, buf=None):
+    if buf is None:
+        buf = Memory.instance.memmap[mapIdx(addr)]
+    out = ""
+    addr = addr & 0xFFFFFF
+    i = 0
+    while buf.buf[addr + i] != b'\xff':
+        out += utils.charset[buf.buf[addr + i][0]]
+        i += 1
+    return out
 
 def init(core):
     if not hasattr(Memory, "instance"):
@@ -107,3 +111,9 @@ def updateBuffers():
     for buf in Memory.instance.memmap:
         if buf is not None:
             buf.update()
+
+def mapIdx(addr):
+    """
+    Returns the memory map index of a given address
+    """
+    return ((addr & 0xFF000000) >> 24) - 2
