@@ -116,4 +116,4 @@ def mapIdx(addr):
     """
     Returns the memory map index of a given address
     """
-    return ((addr & 0xFF000000) >> 24) - 2
+    return (addr >> 24) - 2
