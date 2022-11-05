@@ -224,6 +224,11 @@ class PersonEvent(utils.RawStruct):
          self.idx,
          self.unknown4) = super().__init__(addr)
 
+    def isVisible():
+        if self.idx == 0:
+            return True
+        return not utils.getFlag(self.idx)
+
 class ScriptEvent(utils.RawStruct):
     fmt = "2H2B3HI"
     def __init__(self, addr):
