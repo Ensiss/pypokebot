@@ -91,13 +91,17 @@ def readS16(addr, buf=None):
     return Memory.instance.unpack(addr, "h", buf)[0]
 def readS32(addr, buf=None):
     return Memory.instance.unpack(addr, "i", buf)[0]
-def readPokeStr(addr, buf=None):
+def readPokeStr(addr, delim=b'\xff', max_sz=-1, buf=None):
+    """
+    Read and decode a Poke string at 'addr',
+    until 'max_sz' or the specified delimiter is reached
+    """
     if buf is None:
         buf = Memory.instance.memmap[mapIdx(addr)]
     out = ""
     addr = addr & 0xFFFFFF
     i = 0
-    while buf.buf[addr + i] != b'\xff':
+    while buf.buf[addr+i:addr+i+len(delim)] != delim and (max_sz < 0 or i < max_sz):
         out += utils.charset[buf.buf[addr + i][0]]
         i += 1
     return out
