@@ -4,12 +4,13 @@ import struct
 
 class RawStruct:
     fmt = ""
-    def __init__(self, addr):
+    def __init__(self, addr, buf=None):
         self.addr = addr
-        return mem.unpack(addr, self.fmt)
+        return mem.unpack(addr, self.fmt, buf)
 
-def rawArray(struct_cls, addr, count):
-    size = struct.calcsize(struct_cls.fmt)
+def rawArray(struct_cls, addr, count, size=-1):
+    if size == -1:
+        size = struct.calcsize(struct_cls.fmt.replace("S", "s"))
     return [struct_cls(addr+i*size) for i in range(count)]
 
 charset = np.zeros(256, dtype=str)
@@ -24,6 +25,8 @@ charset[0xFE] = "\n"
 charset[0xFF] = "\x00"
 
 def pokeToAscii(poke):
+    if b'\xff' in poke:
+        poke = poke[:poke.index(b'\xff')]
     return "".join([charset[x] for x in poke])
 
 def getFlag(flag):

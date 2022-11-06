@@ -64,12 +64,14 @@ class Memory(object):
 
         if buf is None:
             buf = self.memmap[mapIdx(addr)]
+        if type(buf) is Buffer:
+            buf = buf.buf
         expanded = None
         if "S" in fmt:
             expanded = _expandFmt(fmt)
             old_fmt = fmt
             fmt = fmt.replace("S", "s")
-        unpacked = struct.unpack_from("<"+fmt, buf.buf, addr & 0xFFFFFF)
+        unpacked = struct.unpack_from("<"+fmt, buf, addr & 0xFFFFFF)
         if expanded is not None:
             if len(unpacked) != len(expanded):
                 print("Unpack: incorrect expansion '%s' @ 0x%08X" % (old_fmt, addr))
