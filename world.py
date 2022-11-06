@@ -84,7 +84,7 @@ class Map():
                 self.map_bg[y, x] = tile.bg
                 self.map_behavior[y, x] = tile.behavior
 
-    def show(self):
+    def plot(self):
         import matplotlib.pyplot as plt
         plt.subplot(2, 2, 1)
         plt.imshow(self.map_behavior)
