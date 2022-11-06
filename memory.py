@@ -100,12 +100,29 @@ def readPokeStr(addr, delim=b'\xff', max_sz=-1, buf=None):
     """
     if buf is None:
         buf = Memory.instance.memmap[mapIdx(addr)]
+    if type(buf) is Buffer:
+        buf = buf.buf
     out = ""
     addr = addr & 0xFFFFFF
     i = 0
-    while buf.buf[addr+i:addr+i+len(delim)] != delim and (max_sz < 0 or i < max_sz):
-        out += utils.charset[buf.buf[addr + i][0]]
+    while buf[addr+i:addr+i+len(delim)] != delim and (max_sz < 0 or i < max_sz):
+        out += utils.charset[buf[addr + i][0]]
         i += 1
+    return out
+def readPokeList(addr, str_sz, delim=b'\x00', buf=None):
+    """
+    Read and decode a list of Poke strings of 'str_sz' bytes
+    until the delimiter is reached
+    """
+    if buf is None:
+        buf = Memory.instance.memmap[mapIdx(addr)]
+    if type(buf) is Buffer:
+        buf = buf.buf
+    addr = addr & 0xFFFFFF
+    out = []
+    while buf[addr:addr+len(delim)] != delim:
+        out.append(utils.pokeToAscii(buf[addr:addr+str_sz]))
+        addr += str_sz
     return out
 
 def init(core):
