@@ -2,19 +2,21 @@ import utils
 import numpy as np
 import memory; mem = memory.Memory
 
-class Data():
-    def __init__(self):
-        self.species_names = mem.readPokeList(0x8245EE0, 11, b'\xae\xff')
-        self.move_names = mem.readPokeList(0x8247094, 13, b'\x00')
-        self.ability_names = mem.readPokeList(0x824FC4D, 13, b'\x00')
-        self.type_names = mem.readPokeList(0x824F1A0, 7, b'\x00')
+class Database():
+    def init():
+        if hasattr(Database, "type_chart"):
+            return
+        Database.species_names = mem.readPokeList(0x8245EE0, 11, b'\xae\xff')
+        Database.move_names = mem.readPokeList(0x8247094, 13, b'\x00')
+        Database.ability_names = mem.readPokeList(0x824FC4D, 13, b'\x00')
+        Database.type_names = mem.readPokeList(0x824F1A0, 7, b'\x00')
 
-        self.moves = [Move(0x08250C04+i*12, n) for i, n in enumerate(self.move_names)]
-        self.species = [Species(0x08254784+i*28, n) for i, n in enumerate(self.species_names)]
-        self.items = utils.rawArray(Item, 0x083DB028, 375)
+        Database.moves = [Move(0x08250C04+i*12, n) for i, n in enumerate(Database.move_names)]
+        Database.species = [Species(0x08254784+i*28, n) for i, n in enumerate(Database.species_names)]
+        Database.items = utils.rawArray(Item, 0x083DB028, 375)
 
         # Type effectiveness chart
-        self.type_chart = np.ones((18, 18))
+        Database.type_chart = np.ones((18, 18))
         addr = 0x0824F050
         t1, t2, code = mem.unpack(addr, "3B")
         while t1 != 0xFF:
@@ -26,19 +28,19 @@ class Data():
                     val = 0.5
                 elif code == 0x00:
                     val = 0
-                self.type_chart[t1, t2] = val
+                Database.type_chart[t1, t2] = val
             addr += 3
             t1, t2, code = mem.unpack(addr, "3B")
 
-    def plotTypeEffectiveness(self):
+    def plotTypeEffectiveness():
         import matplotlib.pyplot as plt
         from matplotlib.colors import LinearSegmentedColormap
         colors = ["black", "red", "grey", "green"]
         nodes = [0, 0.25, 0.5, 1]
         mycmap = LinearSegmentedColormap.from_list("mycmap", list(zip(nodes, colors)))
-        plt.imshow(self.type_chart, cmap=mycmap)
-        plt.xticks(range(len(self.type_names)), self.type_names, rotation=45, ha='right')
-        plt.yticks(range(len(self.type_names)), self.type_names)
+        plt.imshow(Database.type_chart, cmap=mycmap)
+        plt.xticks(range(len(Database.type_names)), Database.type_names, rotation=45, ha='right')
+        plt.yticks(range(len(Database.type_names)), Database.type_names)
         plt.show()
 
 class Move(utils.RawStruct):
