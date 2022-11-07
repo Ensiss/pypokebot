@@ -1,6 +1,6 @@
 import numpy as np
-import memory as mem
 import struct
+import memory; mem = memory.Memory
 
 class RawStruct:
     fmt = ""

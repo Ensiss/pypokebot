@@ -1,7 +1,7 @@
-import memory as mem
 import utils
 import numpy as np
 import enum
+import memory; mem = memory.Memory
 
 class Status(enum.IntEnum):
     SLEEP = 0

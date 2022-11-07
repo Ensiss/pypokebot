@@ -1,6 +1,6 @@
-import memory as mem
 import utils
 import numpy as np
+import memory; mem = memory.Memory
 
 class Data():
     def __init__(self):

@@ -1,7 +1,7 @@
-import memory as mem
 import utils
 import enum
 import numpy as np
+import memory; mem = memory.Memory
 
 class WildType(enum.IntEnum):
     GRASS = 0
@@ -60,7 +60,7 @@ class Map():
             i += 1
 
         # Map data handling
-        rom = mem.Memory.instance.rom.buf
+        rom = mem.rom.buf
         data_ptr = data_hdr.data_ptr & 0xFFFFFF
         sz = self.width * self.height
         data = np.frombuffer(rom[data_ptr:data_ptr+(2 * sz)], dtype=np.uint16)
