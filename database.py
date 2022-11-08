@@ -57,6 +57,10 @@ class Move(utils.RawStruct):
          self.priority,
          self.flags) = super().__init__(addr)
 
+    def isSpecial(self):
+        """ Whether the move uses spatk/spdef or normal stats """
+        return self.type > 9
+
 class Species(utils.RawStruct):
     fmt = "10B3H10B2x"
     def __init__(self, addr, name):
@@ -84,6 +88,20 @@ class Species(utils.RawStruct):
          self.ability2,
          self.safari_zone_rate,
          self.color_flip) = super().__init__(addr)
+
+    def typeEffectiveness(self, move):
+        if type(move) is int:
+            move = Database.moves[move]
+        eff = Database.type_chart[move.type, self.type1]
+        if self.type1 != self.type2:
+            eff *= Database.type_chart[move.type, self.type2]
+        return eff
+
+    def sameTypeAttackBonus(self, move):
+        if type(move) is int:
+            move = Database.moves[move]
+        mt = move.type
+        return 1 + 0.5 * (self.type1 == mt or self.type2 == mt)
 
 class Item(utils.RawStruct):
     fmt = "14S2H2BIH2B4I"

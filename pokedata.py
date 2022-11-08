@@ -2,6 +2,7 @@ import utils
 import numpy as np
 import enum
 import memory; mem = memory.Memory
+import database; db = database.Database
 
 class Status(enum.IntEnum):
     SLEEP = 0
@@ -53,11 +54,35 @@ class IPokeData(utils.RawStruct):
     def isBadlyPoisoned(self):
         return self.checkStatus(Status.BAD_POISON)
 
+    def typeEffectiveness(self, move):
+        return self.species.typeEffectiveness(move)
+
+    def sameTypeAttackBonus(self, move):
+        return self.species.sameTypeAttackBonus(move)
+
+    def chanceToHit(self, target, move):
+        if type(move) is int:
+            move = db.moves[move]
+        return move.accuracy * (self.getRealAccuracy() / target.getRealEvasion())
+
+    def potentialDamage(self, target, move):
+        if type(move) is int:
+            move = db.moves[move]
+        atk = self.getRealSpAtk() if move.isSpecial() else self.getRealAtk()
+        defense = self.getRealSpDef() if move.isSpecial() else self.getRealDef()
+        stab = self.sameTypeAttackBonus(move)
+        effectiveness = target.typeEffectiveness(move)
+        dmg = 2.0 * self.level / 5.0 + 2
+        dmg = (dmg * atk * move.power) / defense
+        dmg = (dmg / 50.0) + 2
+        dmg = dmg * stab * effectiveness
+        return dmg * 217 / 255, dmg
+
 class BattleData(IPokeData):
     fmt = "10HI16BH2B2H11SB8S5I"
     def __init__(self, addr):
         unpacked = super().__init__(addr)
-        (self.species,
+        (self.species_idx,
          self.atk,
          self.defense,
          self.speed,
@@ -91,6 +116,7 @@ class BattleData(IPokeData):
          self.status,
          self.status2,
          self.ot_id) = unpacked[27:]
+        self.species = db.species[self.species_idx]
 
 class PokemonData(IPokeData):
     fmt = "2I10SH7SBH2x48sI2B7H"
@@ -147,10 +173,12 @@ class PokemonData(IPokeData):
          self.evs,
          self.misc) = subs
 
+        self.species = db.species[self.growth.species_idx]
+
 class Growth(utils.RawStruct):
     fmt = "2HI2BH"
     def __init__(self, addr, buf):
-        (self.species,
+        (self.species_idx,
          self.item,
          self.xp,
          self.pp_up,
