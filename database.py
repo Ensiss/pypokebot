@@ -1,5 +1,6 @@
 import utils
 import numpy as np
+import world
 import memory; mem = memory.Memory
 
 class Database():
@@ -31,6 +32,17 @@ class Database():
                 Database.type_chart[t1, t2] = val
             addr += 3
             t1, t2, code = mem.unpack(addr, "3B")
+
+        # World and map data
+        bankptr = 0x83526A8
+        rel, nxt = mem.unpack(bankptr, "2I")
+        Database.banks = []
+        while nxt > 0x8000000:
+            maps = []
+            for addr in range(rel, nxt, 4):
+                maps.append(world.Map(mem.readU32(addr)))
+            Database.banks.append(maps)
+            rel, nxt = mem.unpack(bankptr + len(Database.banks) * 4, "2I")
 
     def plotTypeEffectiveness():
         import matplotlib.pyplot as plt
