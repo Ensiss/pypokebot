@@ -12,6 +12,7 @@ import pygame
 
 import world
 import pokedata
+import player
 import utils
 import memory; mem = memory.Memory
 import database; db = database.Database
@@ -83,9 +84,15 @@ def runGame(onPreFrame=None, nframes=-1):
         i += 1
 
 def introSkipper():
+    global turbo
     core.clear_keys(core.KEY_B, core.KEY_A)
     if core.frame_counter % 2 == 0:
         core.set_keys(core.KEY_A)
+    turbo = core.frame_counter < 799
 
 runGame(introSkipper, 800)
 runGame()
+
+pteam = utils.rawArray(pokedata.PokemonData, 0x02024284, 6)
+eteam = utils.rawArray(pokedata.PokemonData, 0x0202402C, 6)
+player = player.Player()
