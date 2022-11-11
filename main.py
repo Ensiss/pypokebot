@@ -33,6 +33,7 @@ db.init()
 
 screen = pygame.display.set_mode(size)
 clock = pygame.time.Clock()
+turbo = False
 keymap = [(pygame.K_UP, core.KEY_UP),
           (pygame.K_DOWN, core.KEY_DOWN),
           (pygame.K_LEFT, core.KEY_LEFT),
@@ -45,20 +46,27 @@ keymap = [(pygame.K_UP, core.KEY_UP),
           (pygame.K_BACKSPACE, core.KEY_SELECT)]
 
 def runGame(onPreFrame=None, nframes=-1):
+    global turbo
     i = 0
     while True:
-        clock.tick(60)
+        clock.tick(0 if turbo else 60)
         if nframes > 0 and i >= nframes:
             return
         for event in pygame.event.get():
             if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
                 return
             elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    turbo = True
+                    continue
                 for key in keymap:
                     if event.key == key[0]:
                         core.add_keys(key[1])
                         break
             elif event.type == pygame.KEYUP:
+                if event.key == pygame.K_SPACE:
+                    turbo = False
+                    continue
                 for key in keymap:
                     if event.key == key[0]:
                         core.clear_keys(key[1])
