@@ -55,6 +55,9 @@ class Database():
         plt.yticks(range(len(Database.type_names)), Database.type_names)
         plt.show()
 
+    def isInBattle():
+        return mem.readU32(0x30030F0) == 0x80123E5
+
 class Move(utils.RawStruct):
     fmt = "9B3x"
     def __init__(self, addr, name):
