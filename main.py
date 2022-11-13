@@ -10,6 +10,7 @@ import mgba.image
 import mgba.log
 import pygame
 
+sys.path.append("core")
 import world
 import pokedata
 import player
@@ -90,7 +91,7 @@ def introSkipper():
         yield 0
     turbo = False
 
-rungame(introSkipper())
+runGame(introSkipper())
 runGame()
 
 pteam = utils.rawArray(pokedata.PokemonData, 0x02024284, 6)
