@@ -1,9 +1,16 @@
-import utils
 import numpy as np
+import struct
+import enum
+import utils
 import world
 import memory; mem = memory.Memory
 
 class Database():
+    class PlayerState(enum.IntEnum):
+        STATIC = 0
+        TURN = enum.auto()
+        WALK = enum.auto()
+
     def init():
         if hasattr(Database, "type_chart"):
             return
@@ -57,6 +64,18 @@ class Database():
 
     def isInBattle():
         return mem.readU32(0x30030F0) == 0x80123E5
+
+    def getPlayerState():
+        """
+        Returns the animation state of the player, see PlayerState
+        0: static
+        1: turning
+        2: walking
+        """
+        return mem.readU8(0x203707A)
+
+    def getOWObject(idx):
+        return OWObject(0x2036E38 + idx * struct.calcsize(OWObject.fmt))
 
 class Move(utils.RawStruct):
     fmt = "9B3x"
@@ -134,3 +153,40 @@ class Item(utils.RawStruct):
          self.battle_usage,
          self.battle_usage_code_ptr,
          self.extra_parameter) = super().__init__(addr)
+
+class OWObject(utils.RawStruct):
+    """
+    Overworld Objects such as people, pickable objects, etc.
+    """
+    fmt = "2BH2BH4B8HI2H"
+    def __init__(self, addr):
+        (self.temp,    # Temporary variable ?
+         self.flags,   # 0x01 = locked (in menu or talking)
+                       # 0x10 = immovable (pokeball in Oak's lab, cuttable tree, etc.)
+                       # 0x40 = off-screen
+         self.unknown,
+         self.unknown2,
+         self.picture_nb,
+         self.mvt_type,
+         self.evt_nb,
+         self.map_id,  # Updated by warps for the player
+         self.bank_id, # Updated by warps for the player
+         self.jump,    # Unknown. Set to 0x30 when jumping, 0x33 otherwise
+         self.spawn_x,
+         self.spawn_y,
+         self.dest_x,
+         self.dest_y,
+         self.curr_x,
+         self.curr_y,
+         self.dir2,    # _dir * 11
+         self.unknown5,
+         self.anim,    # current OW animation ?
+         self.dir,
+         self.unknown6) = super().__init__(addr)
+        self.dir -= 1  # 0 = down, 1 = up, 2 = left, 3 = right
+        self.dest_x -= 7
+        self.dest_y -= 7
+        self.curr_x -= 7
+        self.curr_y -= 7
+        self.x = self.curr_x
+        self.y = self.curr_y
