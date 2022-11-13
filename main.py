@@ -17,6 +17,9 @@ import player
 import utils
 import memory; mem = memory.Memory
 import database; db = database.Database
+import bot.misc
+import bot.movement
+from bot.bot import Bot
 
 parser = argparse.ArgumentParser(description="Pokebot")
 parser.add_argument("-r", "--rom", type=str, default=os.path.expanduser("~/Games/Pokemon - FireRed Version (USA).gba"),
@@ -47,8 +50,10 @@ keymap = [(pygame.K_UP, core.KEY_UP),
           (pygame.K_RETURN, core.KEY_START),
           (pygame.K_BACKSPACE, core.KEY_SELECT)]
 
-def runGame(onPreFrame=None):
+def runGame(bot=None):
     global turbo
+    onPreFrame = None if bot is None else bot.onPreFrame()
+
     while True:
         clock.tick(0 if turbo else 60)
         for event in pygame.event.get():
@@ -71,9 +76,8 @@ def runGame(onPreFrame=None):
                         core.clear_keys(key[1])
                         break
 
-        if onPreFrame is not None:
-            if next(onPreFrame, -1) == -1:
-                return
+        if onPreFrame is not None and next(onPreFrame, -1) == -1:
+            return
         core.run_frame()
         mem.updateBuffers()
 
@@ -81,18 +85,31 @@ def runGame(onPreFrame=None):
         screen.blit(surface, (0, 0))
         pygame.display.flip()
 
-def introSkipper():
+def mainAI():
     global turbo
     while core.frame_counter < 800:
         turbo = True
         core.set_keys(core.KEY_A)
         yield 0
-        core.clear_keys(core.KEY_A)
+        core.set_keys()
         yield 0
     turbo = False
+    yield from bot.misc.wait(60*1)
+    while True:
+        print(db.isInBattle())
+        yield from bot.movement.turn(core.KEY_DOWN)
+        yield from bot.movement.turn(core.KEY_LEFT)
+        yield from bot.movement.turn(core.KEY_UP)
+        yield from bot.movement.turn(core.KEY_RIGHT)
 
-runGame(introSkipper())
-runGame()
+def battleAI():
+    while True:
+        core.set_keys(core.KEY_A)
+        yield 0
+        core.set_keys()
+        yield 0
+
+runGame(Bot(mainAI(), battleAI()))
 
 pteam = utils.rawArray(pokedata.PokemonData, 0x02024284, 6)
 eteam = utils.rawArray(pokedata.PokemonData, 0x0202402C, 6)
