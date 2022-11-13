@@ -8,9 +8,10 @@ def waitUntil(condition):
     Suspends execution until a condition is met
     The condition parameter is a function returning the value
     """
-    yield
-    while condition():
+    while True:
         yield
+        if condition():
+            break
 
 def waitWhile(condition):
     """
