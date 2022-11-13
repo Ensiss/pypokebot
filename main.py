@@ -46,13 +46,10 @@ keymap = [(pygame.K_UP, core.KEY_UP),
           (pygame.K_RETURN, core.KEY_START),
           (pygame.K_BACKSPACE, core.KEY_SELECT)]
 
-def runGame(onPreFrame=None, nframes=-1):
+def runGame(onPreFrame=None):
     global turbo
-    i = 0
     while True:
         clock.tick(0 if turbo else 60)
-        if nframes > 0 and i >= nframes:
-            return
         for event in pygame.event.get():
             if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
                 return
@@ -74,23 +71,26 @@ def runGame(onPreFrame=None, nframes=-1):
                         break
 
         if onPreFrame is not None:
-            onPreFrame()
+            if next(onPreFrame, -1) == -1:
+                return
         core.run_frame()
         mem.updateBuffers()
 
         surface = pygame.image.frombuffer(screen_buf.to_pil().tobytes(), size, "RGBX")
         screen.blit(surface, (0, 0))
         pygame.display.flip()
-        i += 1
 
 def introSkipper():
     global turbo
-    core.clear_keys(core.KEY_B, core.KEY_A)
-    if core.frame_counter % 2 == 0:
+    while core.frame_counter < 800:
+        turbo = True
         core.set_keys(core.KEY_A)
-    turbo = core.frame_counter < 799
+        yield 0
+        core.clear_keys(core.KEY_A)
+        yield 0
+    turbo = False
 
-runGame(introSkipper, 800)
+rungame(introSkipper())
 runGame()
 
 pteam = utils.rawArray(pokedata.PokemonData, 0x02024284, 6)
