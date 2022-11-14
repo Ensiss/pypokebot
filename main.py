@@ -10,16 +10,17 @@ import mgba.image
 import mgba.log
 import pygame
 
-sys.path.append("core")
+sys.path += ["core", "bot"]
 import world
 import pokedata
 import player
 import utils
 import memory; mem = memory.Memory
 import database; db = database.Database
-import bot.misc
-import bot.movement
-from bot.bot import Bot
+import core.io; io = core.io.IO
+import misc
+import movement
+from bot import Bot
 
 parser = argparse.ArgumentParser(description="Pokebot")
 parser.add_argument("-r", "--rom", type=str, default=os.path.expanduser("~/Games/Pokemon - FireRed Version (USA).gba"),
@@ -34,46 +35,35 @@ screen_buf = mgba.image.Image(*size)
 core.set_video_buffer(screen_buf)
 core.reset()
 mem.init(core)
+io.init(core)
 db.init()
 
 screen = pygame.display.set_mode(size)
 clock = pygame.time.Clock()
-turbo = False
-keymap = [(pygame.K_UP, core.KEY_UP),
-          (pygame.K_DOWN, core.KEY_DOWN),
-          (pygame.K_LEFT, core.KEY_LEFT),
-          (pygame.K_RIGHT, core.KEY_RIGHT),
-          (pygame.K_w, core.KEY_A),
-          (pygame.K_x, core.KEY_B),
-          (pygame.K_q, core.KEY_L),
-          (pygame.K_s, core.KEY_R),
-          (pygame.K_RETURN, core.KEY_START),
-          (pygame.K_BACKSPACE, core.KEY_SELECT)]
 
 def runGame(bot=None):
-    global turbo
     onPreFrame = None if bot is None else bot.onPreFrame()
 
     while True:
-        clock.tick(0 if turbo else 60)
+        clock.tick(0 if io.turbo else 60)
         for event in pygame.event.get():
             if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
                 return
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
-                    turbo = True
+                    io.turbo = True
                     continue
-                for key in keymap:
+                for key in io.keymap:
                     if event.key == key[0]:
-                        core.add_keys(key[1])
+                        io.press(key[1])
                         break
             elif event.type == pygame.KEYUP:
                 if event.key == pygame.K_SPACE:
-                    turbo = False
+                    io.turbo = False
                     continue
-                for key in keymap:
+                for key in io.keymap:
                     if event.key == key[0]:
-                        core.clear_keys(key[1])
+                        io.release(key[1])
                         break
 
         if onPreFrame is not None and next(onPreFrame, -1) == -1:
@@ -86,28 +76,21 @@ def runGame(bot=None):
         pygame.display.flip()
 
 def mainAI():
-    global turbo
+    io.turbo = True
     while core.frame_counter < 800:
-        turbo = True
-        core.set_keys(core.KEY_A)
-        yield 0
-        core.set_keys()
-        yield 0
-    turbo = False
-    yield from bot.misc.wait(60*1)
+        yield io.toggle(core.KEY_A)
+    io.turbo = False
+    yield from misc.wait(60*1)
     while True:
         print(db.isInBattle())
-        yield from bot.movement.turn(core.KEY_DOWN)
-        yield from bot.movement.turn(core.KEY_LEFT)
-        yield from bot.movement.turn(core.KEY_UP)
-        yield from bot.movement.turn(core.KEY_RIGHT)
+        yield from movement.turn(core.KEY_DOWN)
+        yield from movement.turn(core.KEY_LEFT)
+        yield from movement.turn(core.KEY_UP)
+        yield from movement.turn(core.KEY_RIGHT)
 
 def battleAI():
     while True:
-        core.set_keys(core.KEY_A)
-        yield 0
-        core.set_keys()
-        yield 0
+        yield io.toggle(core.KEY_A)
 
 runGame(Bot(mainAI(), battleAI()))
 

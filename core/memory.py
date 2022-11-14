@@ -1,6 +1,6 @@
-import mgba.core
 import struct
 import re
+import mgba
 
 import utils
 
