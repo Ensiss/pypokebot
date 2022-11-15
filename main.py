@@ -82,7 +82,7 @@ def mainAI():
     io.turbo = False
     yield from misc.wait(60*1)
     while True:
-        print(db.isInBattle())
+        print(player.x, player.y, db.isInBattle())
         yield from movement.turn(core.KEY_DOWN)
         yield from movement.turn(core.KEY_LEFT)
         yield from movement.turn(core.KEY_UP)
@@ -92,8 +92,8 @@ def battleAI():
     while True:
         yield io.toggle(core.KEY_A)
 
-runGame(Bot(mainAI(), battleAI()))
-
 pteam = utils.rawArray(pokedata.PokemonData, 0x02024284, 6)
 eteam = utils.rawArray(pokedata.PokemonData, 0x0202402C, 6)
 player = player.Player()
+
+runGame(Bot(mainAI(), battleAI()))

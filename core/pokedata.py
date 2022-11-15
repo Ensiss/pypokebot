@@ -12,10 +12,10 @@ class Status(enum.IntEnum):
     PARALYSIS = enum.auto()
     BAD_POISON = enum.auto()
 
-class IPokeData(utils.RawStruct):
+class IPokeData(utils.RawStruct, utils.AutoUpdater):
     fmt = ""
     def __init__(self, addr):
-        return super().__init__(addr)
+        super().__init__(addr)
 
     def _getMultiplier(self, n, d):
         r = (abs(n) + d) / d
@@ -81,7 +81,10 @@ class IPokeData(utils.RawStruct):
 class BattleData(IPokeData):
     fmt = "10HI16BH2B2H11SB8S5I"
     def __init__(self, addr):
-        unpacked = super().__init__(addr)
+        super().__init__(addr)
+
+    def update(self):
+        unpacked = self.unpack()
         (self.species_idx,
          self.atk,
          self.defense,
@@ -121,6 +124,9 @@ class BattleData(IPokeData):
 class PokemonData(IPokeData):
     fmt = "2I10SH7SBH2x48sI2B7H"
     def __init__(self, addr):
+        super().__init__(addr)
+
+    def update(self):
         (self.personality,
          self.ot_id,
          self.nick,
@@ -138,7 +144,7 @@ class PokemonData(IPokeData):
          self.defense,
          self.speed,
          self.spatk,
-         self.spdef) = super().__init__(addr)
+         self.spdef) = self.unpack()
         self.hp_buff = 0
         self.atk_buff = 0
         self.def_buff = 0

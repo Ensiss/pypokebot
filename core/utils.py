@@ -5,8 +5,31 @@ import memory; mem = memory.Memory
 class RawStruct:
     fmt = ""
     def __init__(self, addr, buf=None):
+        super().__init__()
         self.addr = addr
-        return mem.unpack(addr, self.fmt, buf)
+        self.buf = buf
+        return self.unpack()
+
+    def unpack(self):
+        return mem.unpack(self.addr, self.fmt, self.buf)
+
+class AutoUpdater:
+    """
+    AutoUpdater class which automatically updates its variables before access
+    when dirty. The update method must be overridden for this to work.
+    """
+    def __init__(self):
+        super().__init__()
+        self._last_update = 0
+
+    def __getattribute__(self, name):
+        if mem.core.frame_counter > object.__getattribute__(self, "_last_update"):
+            self._last_update = mem.core.frame_counter
+            self.update()
+        return super().__getattribute__(name)
+
+    def update(self):
+        raise Exception("Please override 'update' when inheriting AutoUpdater")
 
 def rawArray(struct_cls, addr, count, size=-1):
     if size == -1:
