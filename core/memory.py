@@ -22,8 +22,6 @@ class Buffer():
 
 class Memory(object):
     def init(core):
-        if hasattr(Memory, "core"):
-            return
         Memory.core = core
 
         Memory.wram = Buffer(2, (lambda: core._native.memory.wram), core.memory.wram.size)

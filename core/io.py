@@ -15,8 +15,6 @@ class IO(object):
         L = enum.auto()
 
     def init(core):
-        if hasattr(IO, "core"):
-            return
         IO.core = core
 
         IO.turbo = False

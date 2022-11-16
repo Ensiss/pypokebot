@@ -3,6 +3,8 @@ import struct
 import enum
 import utils
 import world
+import player
+import pokedata
 import memory; mem = memory.Memory
 
 class Database():
@@ -12,8 +14,6 @@ class Database():
         WALK = enum.auto()
 
     def init():
-        if hasattr(Database, "type_chart"):
-            return
         Database.species_names = mem.readPokeList(0x8245EE0, 11, b'\xae\xff')
         Database.move_names = mem.readPokeList(0x8247094, 13, b'\x00')
         Database.ability_names = mem.readPokeList(0x824FC4D, 13, b'\x00')
@@ -50,6 +50,11 @@ class Database():
                 maps.append(world.Map(mem.readU32(addr)))
             Database.banks.append(maps)
             rel, nxt = mem.unpack(bankptr + len(Database.banks) * 4, "2I")
+
+        # Dynamic data
+        Database.pteam = utils.rawArray(pokedata.PokemonData, 0x02024284, 6)
+        Database.eteam = utils.rawArray(pokedata.PokemonData, 0x0202402C, 6)
+        Database.player = player.Player()
 
     def plotTypeEffectiveness():
         import matplotlib.pyplot as plt
