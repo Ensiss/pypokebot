@@ -3,8 +3,6 @@ import struct
 import enum
 import utils
 import world
-import player
-import pokedata
 import memory; mem = memory.Memory
 
 class Database():
@@ -51,10 +49,14 @@ class Database():
             Database.banks.append(maps)
             rel, nxt = mem.unpack(bankptr + len(Database.banks) * 4, "2I")
 
+        import pokedata
+        import player
+        import bag
         # Dynamic data
         Database.pteam = utils.rawArray(pokedata.PokemonData, 0x02024284, 6)
         Database.eteam = utils.rawArray(pokedata.PokemonData, 0x0202402C, 6)
         Database.player = player.Player()
+        Database.bag = bag.Bag()
 
     def plotTypeEffectiveness():
         import matplotlib.pyplot as plt
