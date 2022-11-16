@@ -76,24 +76,22 @@ def runGame(bot=None):
         pygame.display.flip()
 
 def mainAI():
+    io.releaseAll()
     io.turbo = True
     while core.frame_counter < 800:
         yield io.toggle(core.KEY_A)
     io.turbo = False
     yield from misc.wait(60*1)
     while True:
-        print(player.x, player.y, db.isInBattle())
+        print(db.player.x, db.player.y, db.isInBattle())
         yield from movement.turn(core.KEY_DOWN)
         yield from movement.turn(core.KEY_LEFT)
         yield from movement.turn(core.KEY_UP)
         yield from movement.turn(core.KEY_RIGHT)
 
 def battleAI():
+    print(db.pteam[0].nick, "vs", db.eteam[0].nick)
     while True:
         yield io.toggle(core.KEY_A)
 
-pteam = utils.rawArray(pokedata.PokemonData, 0x02024284, 6)
-eteam = utils.rawArray(pokedata.PokemonData, 0x0202402C, 6)
-player = player.Player()
-
-runGame(Bot(mainAI(), battleAI()))
+runGame(Bot(mainAI, battleAI))

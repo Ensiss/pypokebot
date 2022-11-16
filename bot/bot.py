@@ -1,30 +1,34 @@
 import sys
-sys.path += ["core", "bot"]
 import memory; mem = memory.Memory
 import database; db = database.Database
+import core.io; io = core.io.IO
 import misc
 
 class Bot():
-    def __init__(self, script, battle_script):
-        self.script = script
-        self.battle_script = battle_script
+    def __init__(self, main_fun, battle_fun):
+        self.main_fun = main_fun
+        self.script = main_fun()
+        self.battle_fun = battle_fun
+        self.battle_script = battle_fun()
         self.was_in_battle = False
         self.wait_after_battle = 30
         self.saved_keys = 0
 
     def onPreFrame(self):
         while True:
-            curr_script = self.battle_script if db.isInBattle() else self.script
-
             if db.isInBattle() != self.was_in_battle:
-                if self.was_in_battle:
-                    mem.core.set_keys()
-                    yield from misc.wait(self.wait_after_battle)
-                    mem.core.set_keys(raw=self.saved_keys)
+                if not self.was_in_battle:
+                    # When entering battle, reload the battle script and save pressed keys
+                    self.saved_keys = io.getRaw()
+                    self.battle_script = self.battle_fun()
                 else:
-                    self.saved_keys = mem.core._core.getKeys(mem.core._core)
+                    # After battle, wait for screen fade and restore keys
+                    io.releaseAll()
+                    yield from misc.wait(self.wait_after_battle)
+                    io.setRaw(self.saved_keys)
                 self.was_in_battle = not self.was_in_battle
 
+            curr_script = self.battle_script if db.isInBattle() else self.script
             if curr_script is not None:
                 yield next(curr_script)
             else:
