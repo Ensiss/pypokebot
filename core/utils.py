@@ -45,12 +45,18 @@ def rawArray(struct_cls, addr, count, size=-1):
 
 charset = np.zeros(256, dtype=str)
 charset[:] = "?"
+charset[0x00] = " "
+charset[0x01:0x15] = list("AAACEEEEI?IIOOOOUUUN")
+charset[0x16:0x2A] = list("aa?ceeeei?iioooouuun")
+charset[0x2C:0x2F] = list(" &+")
+charset[0x35] = "="
+charset[0x5A:0x5E] = list("I%()")
+charset[0x79:0x7D] = list("^v<>")
 charset[0xA1:0xAB] = list(map(chr, range(ord('0'), ord('9')+1)))
 charset[0xAB:0xBB] = list("!?.-*.\"\"''MF ,x/")
 charset[0xBB:0xD5] = list(map(chr, range(ord('A'), ord('Z')+1)))
 charset[0xD5:0xEF] = list(map(chr, range(ord('a'), ord('z')+1)))
-charset[0x00] = " "
-charset[0xF0] = ":"
+charset[0xEF:0xFA] = ">:AOUaou^v<"
 charset[0xFE] = "\n"
 charset[0xFF] = "\x00"
 
