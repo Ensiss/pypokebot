@@ -58,6 +58,9 @@ class Database():
         Database.player = player.Player()
         Database.bag = bag.Bag()
 
+        # Menus
+        Database.battle_menu = pokedata.BattleMenu()
+
     def plotTypeEffectiveness():
         import matplotlib.pyplot as plt
         from matplotlib.colors import LinearSegmentedColormap
