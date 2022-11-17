@@ -8,6 +8,7 @@ import utils
 class Bag(utils.AutoUpdater, list):
     def __init__(self):
         super().__init__()
+        self.menu = Menu(0x0203AD00)
         self.update()
 
     def update(self):
@@ -20,6 +21,21 @@ class Bag(utils.AutoUpdater, list):
             pocket_sz = struct.calcsize(Pocket.fmt)
             for i in range(5):
                 self.append(Pocket(self, 0x0203988C + i * pocket_sz))
+
+class Menu(utils.RawStruct, utils.AutoUpdater):
+    fmt = "2B7H"
+    def __init__(self, addr):
+        super().__init__(addr)
+
+    def update(self):
+        unpacked = self.unpack()
+        (self.unknown,
+         self.is_open,
+         self.pocket) = unpacked[:3]
+        self.cursors = list(unpacked[3:6])
+        self.scrolls = list(unpacked[6:9])
+        (self.cursor,
+         self.scroll) = mem.unpack(0x030050D8, "2H")
 
 class Pocket(utils.RawStruct, list):
     class Type(enum.IntEnum):
