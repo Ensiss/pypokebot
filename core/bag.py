@@ -8,7 +8,6 @@ import utils
 class Bag(utils.AutoUpdater, list):
     def __init__(self):
         super().__init__()
-        self.menu = Menu(0x0203AD00)
         self.update()
 
     def update(self):
@@ -22,10 +21,10 @@ class Bag(utils.AutoUpdater, list):
             for i in range(5):
                 self.append(Pocket(self, 0x0203988C + i * pocket_sz))
 
-class Menu(utils.RawStruct, utils.AutoUpdater):
+class BagMenu(utils.RawStruct, utils.AutoUpdater):
     fmt = "2B7H"
-    def __init__(self, addr):
-        super().__init__(addr)
+    def __init__(self):
+        super().__init__(0x0203AD00)
 
     def update(self):
         unpacked = self.unpack()

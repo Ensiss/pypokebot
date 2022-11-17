@@ -60,6 +60,7 @@ class Database():
 
         # Menus
         Database.battle_menu = pokedata.BattleMenu()
+        Database.bag_menu = bag.BagMenu()
 
     def plotTypeEffectiveness():
         import matplotlib.pyplot as plt
