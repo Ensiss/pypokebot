@@ -12,22 +12,6 @@ class Status(enum.IntEnum):
     PARALYSIS = enum.auto()
     BAD_POISON = enum.auto()
 
-class BattleMenu(utils.RawStruct, utils.AutoUpdater):
-    fmt = "2BHB"
-    def __init__(self):
-        super().__init__(0x02023E82)
-
-    def update(self):
-        (self.submenu,
-         self.state,
-         self.unknown,
-         self.battle) = self.unpack()
-        (self.cursor,
-         self.attack) = mem.unpack(0x02023FF8, "2I")
-        open_raw = mem.readU8(0x02020014)
-        self.is_open = (open_raw == 1 or open_raw == 8)
-        self.menu = 0 if self.submenu == 1 else self.cursor + 1
-
 class IPokeData(utils.RawStruct, utils.AutoUpdater):
     fmt = ""
     def __init__(self, addr):
