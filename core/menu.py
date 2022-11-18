@@ -32,3 +32,20 @@ class BagMenu(utils.RawStruct, utils.AutoUpdater):
         self.scrolls = list(unpacked[6:9])
         (self.cursor,
          self.scroll) = mem.unpack(0x030050D8, "2H")
+
+class StartMenu(utils.RawStruct, utils.AutoUpdater):
+    fmt = "I12B"
+    def __init__(self):
+        super().__init__(0x020370F0)
+
+    def update(self):
+        unpacked = self.unpack()
+        (self.active_ctx,
+         self.cursor,
+         self.nb_items) = unpacked[:3]
+        self.item_idxs = list(unpacked[3:12])
+        self.state = unpacked[12]
+        dialog = mem.unpack(0x020204C0, "12s")[0]
+        # TODO: find something more robust/clean
+        start_bytes = b"\x00\x16\x01\x07\x0d\x0f\x3d\x01\x60\x2d\x00\x02"
+        self.is_open = (dialog == start_bytes)

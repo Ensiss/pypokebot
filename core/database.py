@@ -62,6 +62,7 @@ class Database():
         # Menus
         Database.battle_menu = menu.BattleMenu()
         Database.bag_menu = menu.BagMenu()
+        Database.start_menu = menu.StartMenu()
 
     def plotTypeEffectiveness():
         import matplotlib.pyplot as plt
