@@ -49,3 +49,18 @@ class StartMenu(utils.RawStruct, utils.AutoUpdater):
         # TODO: find something more robust/clean
         start_bytes = b"\x00\x16\x01\x07\x0d\x0f\x3d\x01\x60\x2d\x00\x02"
         self.is_open = (dialog == start_bytes)
+
+class MultiChoice(utils.RawStruct):
+    fmt = "IB3x"
+
+    def __init__(self, addr):
+        (self.str_table,
+         self.nb_choices) = super().__init__(addr)
+        self.choices = []
+        for i in range(self.nb_choices):
+            str_ptr = mem.readU32(self.str_table + i * 8)
+            self.choices.append(mem.readPokeStr(str_ptr))
+
+    def __str__(self):
+        choices = ", ".join(["%d:%s"%x for x in enumerate(self.choices)])
+        return "MultiChoice@0x%08X: %s" % (self.addr, choices)

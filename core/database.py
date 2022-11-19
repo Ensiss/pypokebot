@@ -63,6 +63,7 @@ class Database():
         Database.battle_menu = menu.BattleMenu()
         Database.bag_menu = menu.BagMenu()
         Database.start_menu = menu.StartMenu()
+        Database.multi_choices = utils.rawArray(menu.MultiChoice, 0x083E04B0, 0x40)
 
     def plotTypeEffectiveness():
         import matplotlib.pyplot as plt
