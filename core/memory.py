@@ -62,10 +62,7 @@ class Memory(object):
                 out += char * repeat
             return out
 
-        if buf is None:
-            buf = Memory.memmap[mapIdx(addr)]
-        if type(buf) is Buffer:
-            buf = buf.buf
+        buf = Memory.bufferFromAddr(addr, buf)
         expanded = None
         if "S" in fmt:
             expanded = _expandFmt(fmt)
@@ -96,10 +93,7 @@ class Memory(object):
         Read and decode a Poke string at 'addr',
         until 'max_sz' or the specified delimiter is reached
         """
-        if buf is None:
-            buf = Memory.memmap[mapIdx(addr)]
-        if type(buf) is Buffer:
-            buf = buf.buf
+        buf = Memory.bufferFromAddr(addr, buf)
         out = ""
         addr = addr & 0xFFFFFF
         i = 0
@@ -112,10 +106,7 @@ class Memory(object):
         Read and decode a list of Poke strings of 'str_sz' bytes
         until the delimiter is reached
         """
-        if buf is None:
-            buf = Memory.memmap[mapIdx(addr)]
-        if type(buf) is Buffer:
-            buf = buf.buf
+        buf = Memory.bufferFromAddr(addr, buf)
         addr = addr & 0xFFFFFF
         out = []
         while buf[addr:addr+len(delim)] != delim:
@@ -127,6 +118,13 @@ class Memory(object):
         for buf in Memory.memmap:
             if buf is not None:
                 buf.update()
+
+    def bufferFromAddr(addr, buf=None):
+        if buf is None:
+            buf = Memory.memmap[mapIdx(addr)]
+        if type(buf) is Buffer:
+            buf = buf.buf
+        return buf
 
 def mapIdx(addr):
     """
