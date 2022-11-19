@@ -114,6 +114,28 @@ class Memory(object):
             addr += str_sz
         return out
 
+    def hexdump(addr, sz, buf=None):
+        buf = Memory.bufferFromAddr(addr, buf)
+        addr = addr & 0xFFFFFF
+        out = ""
+        translation = ""
+        for i in range(sz):
+            if i % 16 == 0:
+                out += "%08x  " % (addr + i)
+            out += "%02x " % buf[addr + i][0]
+            c = utils.charset[buf[addr + i][0]].replace("\n", " ")
+            if not c.isprintable() or len(c) == 0:
+                c = "."
+            translation += c
+            if i % 8 == 7:
+                out += " "
+            if i % 16 == 15:
+                out += "|%s|\n" % translation
+                translation = ""
+        if out[-1] != "\n":
+            out += "\n"
+        print(out, end="")
+
     def updateBuffers():
         for buf in Memory.memmap:
             if buf is not None:
