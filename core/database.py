@@ -91,6 +91,9 @@ class Database():
     def getOWObject(idx):
         return OWObject(0x2036E38 + idx * struct.calcsize(OWObject.fmt))
 
+    def getCurrentMap():
+        return Database.banks[Database.player.bank_id][Database.player.map_id]
+
 class Move(utils.RawStruct):
     fmt = "9B3x"
     def __init__(self, addr, name):
