@@ -4,17 +4,13 @@ import core.io; io = core.io.IO
 import misc
 
 def turn(btn):
-    dirs = [io.Key.DOWN,
-            io.Key.UP,
-            io.Key.LEFT,
-            io.Key.RIGHT]
-    if btn not in dirs:
+    if btn not in io.directions:
         print("turn error: button %d is not a direction" % btn)
         return -1
 
     ow = db.getOWObject(0) # Player's sprite
     yield from misc.waitWhile(lambda: db.getPlayerState() != db.PlayerState.STATIC)
-    if dirs[ow.dir] != btn:
+    if io.directions[ow.dir] != btn:
         while db.getPlayerState() != db.PlayerState.TURN:
             yield io.toggle(btn)
 

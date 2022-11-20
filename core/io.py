@@ -29,6 +29,11 @@ class IO(object):
                      (pygame.K_RETURN, core.KEY_START),
                      (pygame.K_BACKSPACE, core.KEY_SELECT)]
 
+        IO.directions = [IO.Key.DOWN,
+                         IO.Key.UP,
+                         IO.Key.LEFT,
+                         IO.Key.RIGHT]
+
     def getRaw():
         return IO.core._core.getKeys(IO.core._core)
     def setRaw(keys):
