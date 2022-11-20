@@ -28,6 +28,11 @@ class MapScriptType(enum.IntEnum):
     UNKNOWN = enum.auto()
     ENTER_MENU_2 = enum.auto()
 
+class Status(enum.IntEnum):
+    OBSTACLE = 0x01
+    WATER = 0x04
+    WALKABLE = 0x0C
+
 class Map():
     def __init__(self, addr):
         self.map_hdr = MapHeader(addr)
