@@ -57,6 +57,7 @@ class Database():
         Database.eteam = utils.rawArray(pokedata.PokemonData, 0x0202402C, 6)
         Database.player = player.Player()
         Database.bag = bag.Bag()
+        Database.ows = utils.rawArray(OWObject, 0x02036E38, 16)
 
         import menu
         # Menus
@@ -87,9 +88,6 @@ class Database():
         2: walking
         """
         return mem.readU8(0x203707A)
-
-    def getOWObject(idx):
-        return OWObject(0x2036E38 + idx * struct.calcsize(OWObject.fmt))
 
     def getCurrentMap():
         return Database.banks[Database.player.bank_id][Database.player.map_id]
@@ -171,12 +169,15 @@ class Item(utils.RawStruct):
          self.battle_usage_code_ptr,
          self.extra_parameter) = super().__init__(addr)
 
-class OWObject(utils.RawStruct):
+class OWObject(utils.RawStruct, utils.AutoUpdater):
     """
     Overworld Objects such as people, pickable objects, etc.
     """
     fmt = "2BH2BH4B8HI2H"
     def __init__(self, addr):
+        super().__init__(addr)
+
+    def update(self):
         (self.temp,    # Temporary variable ?
          self.flags,   # 0x01 = locked (in menu or talking)
                        # 0x10 = immovable (pokeball in Oak's lab, cuttable tree, etc.)
@@ -199,7 +200,7 @@ class OWObject(utils.RawStruct):
          self.unknown5,
          self.anim,    # current OW animation ?
          self.dir,
-         self.unknown6) = super().__init__(addr)
+         self.unknown6) = self.unpack()
         self.dir -= 1  # 0 = down, 1 = up, 2 = left, 3 = right
         self.dest_x -= 7
         self.dest_y -= 7
