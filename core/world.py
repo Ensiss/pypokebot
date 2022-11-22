@@ -89,6 +89,9 @@ class Map():
                 self.map_bg[y, x] = tile.bg
                 self.map_behavior[y, x] = tile.behavior
 
+    def makePathfinder(self):
+        return Pathfinder(self)
+
     def plot(self):
         import matplotlib.pyplot as plt
         plt.subplot(2, 2, 1)
@@ -105,6 +108,72 @@ class Map():
         plt.title("Tile")
         plt.show()
 
+class Pathfinder:
+    class Node:
+        def __init__(self, m, coords):
+            self.map = m
+            self.x, self.y = coords
+            self.status = m.map_status[self.y, self.x]
+            self.tile = m.map_tile[self.y, self.x]
+            self.behavior = m.map_behavior[self.y, self.x]
+            self.bg = m.map_bg[self.y, self.x]
+            self.left = self.right = None
+            self.up = self.down = None
+            self.g = self.f = 0
+
+        def isWalkable(self):
+            return (self.status in [0x0C, 0x00, 0x10] and   # Walkable tile
+                    self.behavior not in [0x61, 0x6B])      # Not escalator
+
+        def connect(self, right, down):
+            self.right = right
+            self.down = down
+            if right is not None:
+                right.left = self
+            if down is not None:
+                down.up = self
+
+    def __init__(self, map_data):
+        self.map = map_data
+        self.nodes = []
+        # Create nodes
+        for y in range(self.map.height):
+            rows = []
+            for x in range(self.map.width):
+                n = Pathfinder.Node(self.map, (x, y))
+                rows.append(n if n.isWalkable() else None)
+            self.nodes.append(rows)
+        # Connect nodes
+        for y in range(self.map.height):
+            for x in range(self.map.width):
+                if self.nodes[y][x] is None:
+                    continue
+                right = self.nodes[y][x+1] if x < self.map.width-1 else None
+                down = self.nodes[y+1][x] if y < self.map.height-1 else None
+                self.nodes[y][x].connect(right, down)
+
+    def plot(self):
+        import matplotlib.pyplot as plt
+        xs = []
+        ys = []
+        for row in self.nodes:
+            for node in row:
+                if node is None:
+                    continue
+                xs.append(node.x)
+                ys.append(node.y)
+                if node.right:
+                    plt.plot([node.x, node.right.x], [node.y+0.1, node.right.y+0.1])
+                if node.left:
+                    plt.plot([node.x, node.left.x], [node.y-0.1, node.left.y-0.1])
+                if node.up:
+                    plt.plot([node.x-0.1, node.up.x-0.1], [node.y, node.up.y])
+                if node.down:
+                    plt.plot([node.x+0.1, node.down.x+0.1], [node.y, node.down.y])
+        plt.scatter(xs, ys)
+        plt.gca().invert_yaxis()
+        plt.gca().set_aspect(1)
+        plt.show()
 
 class MapHeader(utils.RawStruct):
     fmt = "4I2H4BH2B"
