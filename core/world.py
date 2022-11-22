@@ -125,13 +125,27 @@ class Pathfinder:
             return (self.status in [0x0C, 0x00, 0x10] and   # Walkable tile
                     self.behavior not in [0x61, 0x6B])      # Not escalator
 
-        def connect(self, right, down):
-            self.right = right
-            self.down = down
-            if right is not None:
-                right.left = self
-            if down is not None:
-                down.up = self
+        def connect(self, pth):
+            right = pth.getNode(self.x+1, self.y)
+            if right:
+                bhv = right.behavior
+                if bhv in [0x38, 0x39]: # Hills
+                    right = pth.getNode(self.x+2, self.y)
+                    if bhv == 0x38: # Right jump
+                        self.right = right
+                    elif right: # Left jump
+                        right.left = self
+                elif right.isWalkable():
+                    self.right = right
+                    right.left = self
+
+            down = pth.getNode(self.x, self.y+1)
+            if down:
+                if down.behavior == 0x3B: # Down jump
+                    self.down = pth.getNode(self.x, self.y+2)
+                elif down.isWalkable():
+                    self.down = down
+                    down.up = self
 
     def __init__(self, map_data):
         self.map = map_data
@@ -141,16 +155,24 @@ class Pathfinder:
             rows = []
             for x in range(self.map.width):
                 n = Pathfinder.Node(self.map, (x, y))
-                rows.append(n if n.isWalkable() else None)
+                rows.append(n)
             self.nodes.append(rows)
         # Connect nodes
         for y in range(self.map.height):
             for x in range(self.map.width):
-                if self.nodes[y][x] is None:
+                if not self.nodes[y][x].isWalkable():
                     continue
-                right = self.nodes[y][x+1] if x < self.map.width-1 else None
-                down = self.nodes[y+1][x] if y < self.map.height-1 else None
-                self.nodes[y][x].connect(right, down)
+                self.nodes[y][x].connect(self)
+        # Remove unwalkable nodes
+        for y in range(self.map.height):
+            for x in range(self.map.width):
+                if not self.nodes[y][x].isWalkable():
+                    self.nodes[y][x] = None
+
+    def getNode(self, x, y):
+        if not (0 <= x < self.map.width and 0 <= y < self.map.height):
+            return None
+        return self.nodes[y][x]
 
     def plot(self):
         import matplotlib.pyplot as plt
