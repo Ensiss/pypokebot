@@ -14,7 +14,7 @@ class Pathfinder:
             self.bg = m.map_bg[self.y, self.x]
             self.left = self.right = None
             self.up = self.down = None
-            self.g = self.f = 0
+            self.clear()
 
         def isWalkable(self):
             return (self.status in [0x0C, 0x00, 0x10] and   # Walkable tile
@@ -57,6 +57,7 @@ class Pathfinder:
                     down.up = self
 
         def disconnect(self):
+            """ Disconnect a node from its neighbors, in both directions """
             if self.left:
                 self.left.right = None
             if self.right:
@@ -67,6 +68,14 @@ class Pathfinder:
                 self.down.up = None
             self.left = self.right = None
             self.up = self.down = None
+
+        def clear(self):
+            """
+            Clear weights and recorded path
+            Keeps links and other static data
+            """
+            self.g = self.f = 0
+            self.prev = None
 
     def __init__(self, map_data):
         self.map = map_data
@@ -89,6 +98,13 @@ class Pathfinder:
             for x in range(self.map.width):
                 if not self.nodes[y][x].isWalkable():
                     self.nodes[y][x] = None
+
+    def clear(self):
+        """ Clear all node weights and paths """
+        for row in self.nodes:
+            for node in row:
+                if node:
+                    node.clear()
 
     def getNode(self, x, y):
         if not (0 <= x < self.map.width and 0 <= y < self.map.height):
