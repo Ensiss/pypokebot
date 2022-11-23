@@ -38,7 +38,7 @@ class Pathfinder:
         def getMovementCost(self):
             """ Returns movement cost """
             if self.behavior in [0x0202]: # Grass
-                return 3.0
+                return 10.0
             return 1.0
 
         def connect(self, pth):
@@ -94,6 +94,7 @@ class Pathfinder:
 
     def __init__(self, map_data):
         self.map = map_data
+        self.dirty = False
         self.nodes = []
         # Create nodes
         for y in range(self.map.height):
@@ -115,7 +116,9 @@ class Pathfinder:
                     self.nodes[y][x] = None
 
     def search(self, xs, ys, xe, ye, dist=0):
-        self.clear()
+        if self.dirty:
+            self.clear()
+        self.dirty = True
         start = self.getNode(xs, ys)
         start.setHeuristicTo(xe, ye)
         openset = [start]
