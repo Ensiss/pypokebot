@@ -2,6 +2,7 @@ import utils
 import enum
 import numpy as np
 import memory; mem = memory.Memory
+import database; db = database.Database
 
 class WildType(enum.IntEnum):
     GRASS = 0
@@ -109,6 +110,8 @@ class Map():
         plt.show()
 
 class Pathfinder:
+    mvt_static = [0, 1, 7, 8, 9, 10] + list(range(13, 25)) + list(range(64, 80))
+
     class Node:
         def __init__(self, m, coords):
             self.map = m
@@ -124,6 +127,20 @@ class Pathfinder:
         def isWalkable(self):
             return (self.status in [0x0C, 0x00, 0x10] and   # Walkable tile
                     self.behavior not in [0x61, 0x6B])      # Not escalator
+
+        def hasOverWorld(self):
+            for pers in self.map.persons:
+                if (pers.x == self.x and pers.y == self.y and pers.isVisible() and
+                    pers.mvt_type in Pathfinder.mvt_static):
+                    return True
+            for ow in db.ows[1:]: # Skip player overworld
+                if ow.map_id == 0 and ow.bank_id == 0:
+                    break
+                if (ow.bank_id == db.player.bank_id and
+                    ow.map_id == db.player.map_id and
+                    ow.dest_x == self.x and ow.dest_y == self.y):
+                    return True
+            return False
 
         def connect(self, pth):
             right = pth.getNode(self.x+1, self.y)
@@ -146,6 +163,18 @@ class Pathfinder:
                 elif down.isWalkable():
                     self.down = down
                     down.up = self
+
+        def disconnect(self):
+            if self.left:
+                self.left.right = None
+            if self.right:
+                self.right.left = None
+            if self.up:
+                self.up.down = None
+            if self.down:
+                self.down.up = None
+            self.left = self.right = None
+            self.up = self.down = None
 
     def __init__(self, map_data):
         self.map = map_data
@@ -176,23 +205,25 @@ class Pathfinder:
 
     def plot(self):
         import matplotlib.pyplot as plt
-        xs = []
-        ys = []
+        xy = []
+        ows = []
         for row in self.nodes:
             for node in row:
                 if node is None:
                     continue
-                xs.append(node.x)
-                ys.append(node.y)
+                xy.append([node.x, node.y])
+                if node.hasOverWorld():
+                    ows.append([node.x, node.y])
                 if node.right:
-                    plt.plot([node.x, node.right.x], [node.y+0.1, node.right.y+0.1])
+                    plt.plot([node.x+.1, node.right.x-.1], [node.y+.1, node.right.y+.1])
                 if node.left:
-                    plt.plot([node.x, node.left.x], [node.y-0.1, node.left.y-0.1])
+                    plt.plot([node.x-.1, node.left.x+.1], [node.y-.1, node.left.y-.1])
                 if node.up:
-                    plt.plot([node.x-0.1, node.up.x-0.1], [node.y, node.up.y])
+                    plt.plot([node.x-.1, node.up.x-.1], [node.y-.1, node.up.y+.1])
                 if node.down:
-                    plt.plot([node.x+0.1, node.down.x+0.1], [node.y, node.down.y])
-        plt.scatter(xs, ys)
+                    plt.plot([node.x+.1, node.down.x+.1], [node.y+.1, node.down.y-.1])
+        plt.scatter(*np.array(xy).T, zorder=2.5)
+        plt.scatter(*np.array(ows).T, color="red", zorder=2.5)
         plt.gca().invert_yaxis()
         plt.gca().set_aspect(1)
         plt.show()
@@ -320,7 +351,7 @@ class PersonEvent(utils.RawStruct):
          self.idx,
          self.unknown4) = super().__init__(addr)
 
-    def isVisible():
+    def isVisible(self):
         if self.idx == 0:
             return True
         return not utils.getFlag(self.idx)
