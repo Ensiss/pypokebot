@@ -1,5 +1,6 @@
 import numpy as np
 import database; db = database.Database
+import core.io; io = core.io.IO
 
 class Pathfinder:
     mvt_static = [0, 1, 7, 8, 9, 10] + list(range(13, 25)) + list(range(64, 80))
@@ -33,6 +34,12 @@ class Pathfinder:
                     ow.dest_x == self.x and ow.dest_y == self.y):
                     return True
             return False
+
+        def getMovementCost(self):
+            """ Returns movement cost """
+            if self.behavior in [0x0202]: # Grass
+                return 3.0
+            return 1.0
 
         def connect(self, pth):
             right = pth.getNode(self.x+1, self.y)
@@ -69,13 +76,21 @@ class Pathfinder:
             self.left = self.right = None
             self.up = self.down = None
 
+        def getNeighbors(self):
+            neighbs = [self.up, self.down, self.left, self.right]
+            return [x for x in neighbs if x]
+
         def clear(self):
             """
             Clear weights and recorded path
             Keeps links and other static data
             """
-            self.g = self.f = 0
+            self.weight = self.heuristic = 0
             self.prev = None
+
+        def setHeuristicTo(self, xe, ye):
+            dist = np.sqrt((xe - self.x) ** 2 + (ye - self.y) ** 2)
+            self.heuristic = self.weight + dist
 
     def __init__(self, map_data):
         self.map = map_data
@@ -99,6 +114,50 @@ class Pathfinder:
                 if not self.nodes[y][x].isWalkable():
                     self.nodes[y][x] = None
 
+    def search(self, xs, ys, xe, ye, dist=0):
+        self.clear()
+        start = self.getNode(xs, ys)
+        start.setHeuristicTo(xe, ye)
+        openset = [start]
+        closedset = []
+
+        while len(openset) > 0:
+            curr = openset.pop(self._getNextIndex(openset))
+            if abs(curr.x - xe) + abs(curr.y - ye) == dist:
+                return self._rebuildPath(curr)
+            closedset.append(curr)
+            for next_node in curr.getNeighbors():
+                if next_node.hasOverWorld():
+                    continue
+                cost = curr.weight + next_node.getMovementCost()
+                visited = (next_node in closedset)
+                if visited and cost >= next_node.weight:
+                    continue
+                if not visited or cost < next_node.weight:
+                    next_node.prev = curr
+                    next_node.weight = cost
+                    next_node.setHeuristicTo(xe, ye)
+                    if next_node not in openset:
+                        openset.append(next_node)
+        return None
+
+    def _getNextIndex(self, l):
+        minh = np.inf
+        mini = 0
+        for i, elm in enumerate(l):
+            if elm.heuristic < minh:
+                mini = i
+                minh = elm.heuristic
+        return mini
+
+    def _rebuildPath(self, node, l=None):
+        if l is None:
+            l = []
+        if node.prev:
+            self._rebuildPath(node.prev, l)
+        l.append([node.x, node.y])
+        return l
+
     def clear(self):
         """ Clear all node weights and paths """
         for row in self.nodes:
@@ -110,6 +169,13 @@ class Pathfinder:
         if not (0 <= x < self.map.width and 0 <= y < self.map.height):
             return None
         return self.nodes[y][x]
+
+    def plotPath(self, path):
+        import matplotlib.pyplot as plt
+        plt.imshow(self.map.map_tile)
+        if path is not None:
+            plt.plot(*np.array(path).T, color="red")
+        plt.show()
 
     def plot(self):
         import matplotlib.pyplot as plt
