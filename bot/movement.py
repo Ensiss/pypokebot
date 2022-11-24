@@ -24,7 +24,6 @@ def step(btn):
         print("step error: button %d is not a direction" % btn)
         return -1
 
-    counter = 0
     xstart = db.player.x
     ystart = db.player.y
     xend = xstart + (btn == io.Key.RIGHT) - (btn == io.Key.LEFT)
