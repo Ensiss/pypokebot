@@ -175,7 +175,12 @@ class Pathfinder:
 
     def plotPath(self, path):
         import matplotlib.pyplot as plt
-        plt.imshow(self.map.map_tile)
+        out = np.zeros(self.map.map_tile.shape)
+        for y in range(self.map.height):
+            for x in range(self.map.width):
+                if self.nodes[y][x]:
+                    out[y][x] = self.nodes[y][x].heuristic
+        plt.imshow(out)
         if path is not None:
             plt.plot(*np.array(path).T, color="red")
         plt.show()
