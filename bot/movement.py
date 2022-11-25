@@ -45,3 +45,38 @@ def step(btn):
                       (ow.dest_x == xstart and ow.dest_y == ystart))
     yield from misc.waitWhile(moving)
     return 0
+
+def to(x, y = None, max_dist = 0):
+    """
+    to(x, y[, maxDist])      Moves to a node in the current map
+    to(id)                   Moves to a person defined by its id
+    """
+    if y is None:
+        max_dist = 1
+    p = db.player
+    m = db.getCurrentMap()
+    finder = m.makePathfinder()
+
+    while True:
+        tgt = (x, y)
+        path = finder.search(p.x, p.y, x, y, max_dist)
+        if path is None:
+            print("to error: no path found: (%d,%d) to (%d,%d)" % (p.x, p.y, x, y))
+            return -1
+
+        for nx, ny in path:
+            dx = nx - p.x
+            dy = ny - p.y
+            if dx == 0 and dy == 0:
+                continue
+            if dx == 0:
+                btn = io.Key.UP if dy < 0 else io.Key.DOWN
+            else:
+                btn = io.Key.LEFT if dx < 0 else io.Key.RIGHT
+            if (yield from step(btn)) == -1:
+                print("step error, recomputing path")
+                break
+
+        if abs(p.x - tgt[0]) + abs(p.y - tgt[1]) <= max_dist:
+            return 0
+    return 0
