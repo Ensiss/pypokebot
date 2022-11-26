@@ -51,11 +51,21 @@ def to(x, y = None, max_dist = 0):
     to(x, y[, maxDist])      Moves to a node in the current map
     to(id)                   Moves to a person defined by its id
     """
+    def _getOWParams():
+        return [(ow.bank_id, ow.map_id, ow.dest_x, ow.dest_y) for ow in db.ows[1:]]
+
+    def _hasNPCMoved(old, new):
+        for oldow, newow in zip(old, new):
+            if oldow != newow:
+                return True
+        return False
+
     if y is None:
         max_dist = 1
     p = db.player
     m = db.getCurrentMap()
     finder = m.makePathfinder()
+    oldows = _getOWParams()
 
     while True:
         tgt = (x, y)
@@ -76,6 +86,13 @@ def to(x, y = None, max_dist = 0):
             if (yield from step(btn)) == -1:
                 print("step error, recomputing path")
                 break
+
+            newows = _getOWParams()
+            if _hasNPCMoved(oldows, newows):
+                print("NPC moved, recomputing path")
+                oldows = newows
+                break
+            oldows = newows
 
         if abs(p.x - tgt[0]) + abs(p.y - tgt[1]) <= max_dist:
             return 0
