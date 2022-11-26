@@ -52,20 +52,29 @@ def to(x, y = None, max_dist = 0):
     to(id)                   Moves to a person defined by its id
     """
     def _getOWParams():
-        return [(ow.bank_id, ow.map_id, ow.dest_x, ow.dest_y) for ow in db.ows[1:]]
+        return [[ow.dest_x, ow.dest_y] for ow in db.ows]
 
-    def _hasNPCMoved(old, new):
-        for oldow, newow in zip(old, new):
-            if oldow != newow:
-                return True
-        return False
+    def _checkNPCs(ows):
+        """ Check if any NPC moved """
+        ret = False
+        for i in range(1, len(db.ows)):
+            old = ows[i]
+            new = db.ows[i]
+            if new.bank_id != db.player.bank_id or new.map_id != db.player.map_id:
+                continue
+            if old[0] == new.dest_x and old[1] == new.dest_y:
+                continue
+            old[0] = new.dest_x
+            old[1] = new.dest_y
+            ret = True
+        return ret
 
     if y is None:
         max_dist = 1
     p = db.player
     m = db.getCurrentMap()
     finder = m.makePathfinder()
-    oldows = _getOWParams()
+    ows = _getOWParams()
 
     while True:
         tgt = (x, y)
@@ -74,9 +83,9 @@ def to(x, y = None, max_dist = 0):
             print("to error: no path found: (%d,%d) to (%d,%d)" % (p.x, p.y, x, y))
             return -1
 
-        for nx, ny in path:
-            dx = nx - p.x
-            dy = ny - p.y
+        for i in range(1, len(path)):
+            dx = path[i][0] - p.x
+            dy = path[i][1] - p.y
             if dx == 0 and dy == 0:
                 continue
             if dx == 0:
@@ -87,12 +96,9 @@ def to(x, y = None, max_dist = 0):
                 print("step error, recomputing path")
                 break
 
-            newows = _getOWParams()
-            if _hasNPCMoved(oldows, newows):
+            if _checkNPCs(ows):
                 print("NPC moved, recomputing path")
-                oldows = newows
                 break
-            oldows = newows
 
         if abs(p.x - tgt[0]) + abs(p.y - tgt[1]) <= max_dist:
             return 0
