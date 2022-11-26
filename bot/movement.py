@@ -54,8 +54,8 @@ def to(x, y = None, max_dist = 0):
     def _getOWParams():
         return [[ow.dest_x, ow.dest_y] for ow in db.ows]
 
-    def _checkNPCs(ows):
-        """ Check if any NPC moved """
+    def _checkNPCs(ows, path):
+        """ Check if any moving NPC joined/left the current player path """
         ret = False
         for i in range(1, len(db.ows)):
             old = ows[i]
@@ -66,7 +66,11 @@ def to(x, y = None, max_dist = 0):
                 continue
             old[0] = new.dest_x
             old[1] = new.dest_y
-            ret = True
+            for nx, ny in path:
+                if ((new.dest_x == nx and new.dest_y == ny) or
+                    (new.x == nx and new.y == ny)):
+                    ret = True
+                    break
         return ret
 
     if y is None:
@@ -83,9 +87,10 @@ def to(x, y = None, max_dist = 0):
             print("to error: no path found: (%d,%d) to (%d,%d)" % (p.x, p.y, x, y))
             return -1
 
-        for i in range(1, len(path)):
-            dx = path[i][0] - p.x
-            dy = path[i][1] - p.y
+        while len(path):
+            nx, ny = path.pop(0)
+            dx = nx - p.x
+            dy = ny - p.y
             if dx == 0 and dy == 0:
                 continue
             if dx == 0:
@@ -96,7 +101,7 @@ def to(x, y = None, max_dist = 0):
                 print("step error, recomputing path")
                 break
 
-            if _checkNPCs(ows):
+            if _checkNPCs(ows, path):
                 print("NPC moved, recomputing path")
                 break
 
