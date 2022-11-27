@@ -54,6 +54,20 @@ def to(x, y = None, max_dist = 0):
     def _getOWParams():
         return [[ow.dest_x, ow.dest_y] for ow in db.ows]
 
+    def _getTargetPos(x, y=None):
+        if y is not None:
+            return x, y
+        m = db.getCurrentMap()
+        pers = m.persons[x]
+        for i in range(1, len(db.ows)):
+            ow = db.ows[i]
+            if ow.map_id == 0 and ow.bank_id == 0:
+                break
+            if (ow.map_id == db.player.map_id and ow.bank_id == db.player.bank_id and
+                ow.evt_nb == pers.evt_nb):
+                return ow.dest_x, ow.dest_y
+        return pers.x, pers.y
+
     def _checkNPCs(ows, path):
         """ Check if any moving NPC joined/left the current player path """
         ret = False
@@ -81,10 +95,10 @@ def to(x, y = None, max_dist = 0):
     ows = _getOWParams()
 
     while True:
-        tgt = (x, y)
-        path = finder.search(p.x, p.y, x, y, max_dist)
+        tgt = _getTargetPos(x, y)
+        path = finder.search(p.x, p.y, *tgt, max_dist)
         if path is None:
-            print("to error: no path found: (%d,%d) to (%d,%d)" % (p.x, p.y, x, y))
+            print("to error: no path found: (%d,%d) to (%d,%d)" % (p.x, p.y, *tgt))
             return -1
 
         while len(path):
