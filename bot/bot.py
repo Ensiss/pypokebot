@@ -30,6 +30,9 @@ class Bot():
 
             curr_script = self.battle_script if db.isInBattle() else self.script
             if curr_script is not None:
-                yield next(curr_script)
+                ret = next(curr_script, -1)
+                if ret == -1:
+                    return -1
+                yield ret
             else:
                 yield
