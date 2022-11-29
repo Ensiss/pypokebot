@@ -22,17 +22,16 @@ class AutoUpdater:
         super().__init__()
         self._last_update = 0
 
-    def _checkUpdate(self):
+    def __getitem__(self, idx):
         if mem.frame_counter > object.__getattribute__(self, "_last_update"):
             self._last_update = mem.frame_counter
             object.__getattribute__(self, "update")()
-
-    def __getitem__(self, idx):
-        object.__getattribute__(self, "_checkUpdate")()
         return super().__getitem__(idx)
 
     def __getattribute__(self, name):
-        object.__getattribute__(self, "_checkUpdate")()
+        if mem.frame_counter > object.__getattribute__(self, "_last_update"):
+            self._last_update = mem.frame_counter
+            object.__getattribute__(self, "update")()
         return super().__getattribute__(name)
 
     def update(self):
