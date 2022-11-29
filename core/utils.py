@@ -26,13 +26,13 @@ class AutoUpdater:
         if mem.frame_counter > object.__getattribute__(self, "_last_update"):
             self._last_update = mem.frame_counter
             object.__getattribute__(self, "update")()
-        return super().__getitem__(idx)
+        return object.__getitem__(self, idx)
 
     def __getattribute__(self, name):
         if mem.frame_counter > object.__getattribute__(self, "_last_update"):
             self._last_update = mem.frame_counter
             object.__getattribute__(self, "update")()
-        return super().__getattribute__(name)
+        return object.__getattribute__(self, name)
 
     def update(self):
         raise Exception("Please override 'update' when inheriting AutoUpdater")
