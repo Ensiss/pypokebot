@@ -23,9 +23,9 @@ class AutoUpdater:
         self._last_update = 0
 
     def _checkUpdate(self):
-        if mem.core.frame_counter > object.__getattribute__(self, "_last_update"):
-            self._last_update = mem.core.frame_counter
-            self.update()
+        if mem.frame_counter > object.__getattribute__(self, "_last_update"):
+            self._last_update = mem.frame_counter
+            object.__getattribute__(self, "update")()
 
     def __getitem__(self, idx):
         object.__getattribute__(self, "_checkUpdate")()

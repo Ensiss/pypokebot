@@ -23,6 +23,7 @@ class Buffer():
 class Memory(object):
     def init(core):
         Memory.core = core
+        Memory.frame_counter = Memory.core.frame_counter
 
         Memory.wram = Buffer(2, (lambda: core._native.memory.wram), core.memory.wram.size)
         Memory.iram = Buffer(3, (lambda: core._native.memory.iwram), core.memory.iwram.size)
@@ -137,6 +138,7 @@ class Memory(object):
         print(out, end="")
 
     def updateBuffers():
+        Memory.frame_counter = Memory.core.frame_counter
         for buf in Memory.memmap:
             if buf is not None:
                 buf.update()
