@@ -118,6 +118,11 @@ class Pathfinder:
     def search(self, xs, ys, xe, ye, dist=0):
         if self.dirty:
             self.clear()
+        # Lock dynamic objects from updates
+        db.player.lock()
+        database.OWObject.lock()
+        for ow in db.ows:
+            ow._checkUpdate()
         self.dirty = True
         start = self.getNode(xs, ys)
         start.setHeuristicTo(xe, ye)
@@ -127,6 +132,8 @@ class Pathfinder:
         while len(openset) > 0:
             curr = openset.pop(self._getNextIndex(openset))
             if abs(curr.x - xe) + abs(curr.y - ye) == dist:
+                db.player.unlock()
+                database.OWObject.unlock()
                 return self._rebuildPath(curr)
             closedset.append(curr)
             for next_node in curr.getNeighbors():
@@ -142,6 +149,8 @@ class Pathfinder:
                     next_node.setHeuristicTo(xe, ye)
                     if next_node not in openset:
                         openset.append(next_node)
+        db.player.unlock()
+        database.OWObject.unlock()
         return None
 
     def _getNextIndex(self, l):

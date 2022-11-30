@@ -22,17 +22,38 @@ class AutoUpdater:
         super().__init__()
         self._last_update = 0
 
-    def __getitem__(self, idx):
+    @classmethod
+    def lock(cls):
+        """ Lock updates. Improves performance when many attributes call are
+        needed in a single frame """
+        cls.__getattribute__ = object.__getattribute__
+        cls.__getitem__ = list.__getitem__
+
+    @classmethod
+    def unlock(cls):
+        """ Unlock and resume auto updates """
+        cls.__getitem__ = cls.__unlocked_getitem__
+        cls.__getattribute__ = cls.__unlocked_getattribute__
+
+    def _checkUpdate(self):
+        if mem.frame_counter > object.__getattribute__(self, "_last_update"):
+            self._last_update = mem.frame_counter
+            object.__getattribute__(self, "update")()
+
+    def __unlocked_getitem__(self, idx):
         if mem.frame_counter > object.__getattribute__(self, "_last_update"):
             self._last_update = mem.frame_counter
             object.__getattribute__(self, "update")()
         return object.__getitem__(self, idx)
 
-    def __getattribute__(self, name):
+    def __unlocked_getattribute__(self, name):
         if mem.frame_counter > object.__getattribute__(self, "_last_update"):
             self._last_update = mem.frame_counter
             object.__getattribute__(self, "update")()
         return object.__getattribute__(self, name)
+
+    __getattribute__ = __unlocked_getattribute__
+    __getitem__ = __unlocked_getitem__
 
     def update(self):
         raise Exception("Please override 'update' when inheriting AutoUpdater")
