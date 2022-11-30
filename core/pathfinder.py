@@ -15,6 +15,7 @@ class Pathfinder:
             self.bg = m.map_bg[self.y, self.x]
             self.left = self.right = None
             self.up = self.down = None
+            self.setMovementCost()
             self.clear()
 
         def isWalkable(self):
@@ -35,11 +36,11 @@ class Pathfinder:
                     return True
             return False
 
-        def getMovementCost(self):
-            """ Returns movement cost """
+        def setMovementCost(self):
+            """ Sets movement cost """
+            self.movement_cost = 1.0
             if self.behavior in [0x0202]: # Grass
-                return 10.0
-            return 1.0
+                self.movement_cost = 10.0
 
         def connect(self, pth):
             right = pth.getNode(self.x+1, self.y)
@@ -139,7 +140,7 @@ class Pathfinder:
             for next_node in curr.getNeighbors():
                 if next_node.hasOverWorld():
                     continue
-                cost = curr.weight + next_node.getMovementCost()
+                cost = curr.weight + next_node.movement_cost
                 visited = (next_node in closedset)
                 if visited and cost >= next_node.weight:
                     continue
