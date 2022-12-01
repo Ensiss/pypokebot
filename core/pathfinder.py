@@ -117,6 +117,10 @@ class Pathfinder:
                     self.nodes[y][x] = None
 
     def search(self, xs, ys, xe, ye, dist=0):
+        def unlock():
+            db.player.unlock()
+            database.OWObject.unlock()
+
         if self.dirty:
             self.clear()
         # Lock dynamic objects from updates
@@ -133,8 +137,7 @@ class Pathfinder:
         while len(openset) > 0:
             curr = openset.pop(self._getNextIndex(openset))
             if abs(curr.x - xe) + abs(curr.y - ye) == dist:
-                db.player.unlock()
-                database.OWObject.unlock()
+                unlock()
                 return self._rebuildPath(curr)
             closedset.append(curr)
             for next_node in curr.getNeighbors():
@@ -150,8 +153,7 @@ class Pathfinder:
                     next_node.setHeuristicTo(xe, ye)
                     if next_node not in openset:
                         openset.append(next_node)
-        db.player.unlock()
-        database.OWObject.unlock()
+        unlock()
         return None
 
     def _getNextIndex(self, l):
