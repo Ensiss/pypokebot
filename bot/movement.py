@@ -102,10 +102,12 @@ def to(x, y = None, max_dist = 0):
             return -1
 
         while len(path):
-            nx, ny = path.pop(0)
+            nx, ny = path[0]
+            # nx, ny = path.pop(0)
             dx = nx - p.x
             dy = ny - p.y
             if dx == 0 and dy == 0:
+                path.pop(0)
                 continue
             if dx == 0:
                 btn = io.Key.UP if dy < 0 else io.Key.DOWN
@@ -118,6 +120,12 @@ def to(x, y = None, max_dist = 0):
             if _checkNPCs(ows, path):
                 print("NPC moved, recomputing path")
                 break
+
+            if _getTargetPos(x, y) != tgt:
+                print("Target moved, recomputing path")
+                break
+
+            path.pop(0)
 
         if abs(p.x - tgt[0]) + abs(p.y - tgt[1]) <= max_dist:
             return 0
