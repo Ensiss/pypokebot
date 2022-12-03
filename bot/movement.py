@@ -143,3 +143,60 @@ def to(x, y = None, max_dist = 0):
         if abs(p.x - tgt[0]) + abs(p.y - tgt[1]) <= max_dist:
             return 0
     return 0
+
+def connection(ctype):
+    """
+    connection(connect_type)    Leave the current map in the specified direction
+    """
+    def _findConnection(m, ctype):
+        for connection in m.connects:
+            if connection.type == ctype:
+                return connection
+        return None
+
+    if ctype == world.ConnectType.NONE or ctype > world.ConnectType.RIGHT:
+        print("connection error: only directions up, down, left, right are currently supported")
+        return -1
+
+    p = db.player
+    m = db.getCurrentMap()
+    connection = _findConnection(m, ctype)
+
+    if connection is None:
+        print("connection error: no connection of type %d in map (%d,%d)" %
+              (ctype, p.bank_id, p.map_id))
+        return -1
+
+    dmap = db.banks[connection.bank_id][connection.map_id]
+    x = (ctype == world.ConnectType.RIGHT) * (m.width - 1)
+    y = (ctype == world.ConnectType.DOWN) * (m.height - 1)
+    vtcl = (ctype in [world.ConnectType.UP, world.ConnectType.DOWN])
+    xstep = int(vtcl)
+    ystep = 1 - xstep
+
+    while x < m.width and y < m.height:
+        # Compute corresponding position in destination map
+        if vtcl:
+            dx = x - connection.offset
+            dy = (ctype == world.ConnectType.UP) * (dmap.height - 1)
+        else:
+            dx = (ctype == world.ConnectType.LEFT) * (dmap.width - 1)
+            dy = y - connection.offset
+
+        print(dx, dy)
+        if (0 <= dx < dmap.width and 0 <= dy < dmap.height and # In bounds
+            m.map_status[y, x] == world.Status.WALKABLE and # Curr map walkable
+            dmap.map_status[dy, dx] == world.Status.WALKABLE): # Destination walkable
+            break
+
+        x += xstep
+        y += ystep
+
+    if x >= m.width or y >= m.height:
+        print("connection error: couldn't find connection %d in map (%d,%d)" %
+              (ctype, p.bank_id, p.map_id))
+        return -1
+
+    yield from to(x, y)
+    yield from step(io.directions[ctype - 1])
+    return 0
