@@ -20,19 +20,34 @@ def turn(btn):
     return 0
 
 def step(btn):
+    def _isValid(m, btn, xend, yend):
+        if (xend < 0 or xend >= m.width or
+            yend < 0 or yend >= m.height):
+            return True
+        # Check hills
+        if btn == io.Key.RIGHT and m.map_behavior[yend, xend] == 0x38:
+            return True
+        if btn == io.Key.LEFT and m.map_behavior[yend, xend] == 0x39:
+            return True
+        if btn == io.Key.DOWN and m.map_behavior[yend, xend] == 0x3B:
+            return True
+        if m.map_status[yend, xend] == world.Status.WALKABLE:
+            return True
+        return False
+
     if btn not in io.directions:
         print("step error: button %d is not a direction" % btn)
         return -1
 
+    m = db.getCurrentMap()
+    ow = db.ows[0]
     xstart = db.player.x
     ystart = db.player.y
     xend = xstart + (btn == io.Key.RIGHT) - (btn == io.Key.LEFT)
     yend = ystart + (btn == io.Key.DOWN) - (btn == io.Key.UP)
-    m = db.getCurrentMap()
-    ow = db.ows[0]
-    if (0 <= xend < m.width and 0 <= yend < m.height and
-        m.map_status[yend, xend] != world.Status.WALKABLE):
-        print("step error: destination (%d,%d) is unreachable" % (xend, yend))
+    if not _isValid(m, btn, xend, yend):
+        print("step error: destination %d unreachable from (%d,%d)" %
+              (btn, xstart, ystart))
         return -1
 
     io.releaseAll()
@@ -40,9 +55,7 @@ def step(btn):
         yield io.toggle(btn)
     io.releaseAll()
 
-    moving = lambda: ((db.player.x == xstart and db.player.y == ystart) or
-                      (ow.x == xstart and ow.y == ystart) or
-                      (ow.dest_x == xstart and ow.dest_y == ystart))
+    moving = lambda: db.getPlayerState() == db.PlayerState.WALK
     yield from misc.waitWhile(moving)
     return 0
 
