@@ -48,6 +48,11 @@ class Database():
                 maps.append(world.Map(mem.readU32(addr)))
             Database.banks.append(maps)
             rel, nxt = mem.unpack(bankptr + len(Database.banks) * 4, "2I")
+        # Load map exits in memory
+        for bank in Database.banks:
+            for m in bank:
+                for connect in m.connects:
+                    connect.findExits(m)
 
         import pokedata
         import player

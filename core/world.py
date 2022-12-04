@@ -2,6 +2,7 @@ import utils
 import enum
 import numpy as np
 import memory; mem = memory.Memory
+import database; db = database.Database
 from pathfinder import Pathfinder
 
 class WildType(enum.IntEnum):
@@ -256,6 +257,34 @@ class Connection(utils.RawStruct):
          self.offset,
          self.bank_id,
          self.map_id) = super().__init__(addr)
+
+    def findExits(self, m):
+        self.exits = []
+        if self.type == ConnectType.NONE or self.type > ConnectType.RIGHT:
+            return
+        dmap = db.banks[self.bank_id][self.map_id]
+        x = (self.type == ConnectType.RIGHT) * (m.width - 1)
+        y = (self.type == ConnectType.DOWN) * (m.height - 1)
+        vtcl = (self.type in [ConnectType.UP, ConnectType.DOWN])
+        xstep = int(vtcl)
+        ystep = 1 - xstep
+
+        while x < m.width and y < m.height:
+            # Compute corresponding position in destination map
+            if vtcl:
+                dx = x - self.offset
+                dy = (self.type == ConnectType.UP) * (dmap.height - 1)
+            else:
+                dx = (self.type == ConnectType.LEFT) * (dmap.width - 1)
+                dy = y - self.offset
+
+            if (0 <= dx < dmap.width and 0 <= dy < dmap.height and # In bounds
+                m.map_status[y, x] == Status.WALKABLE and # Curr map walkable
+                dmap.map_status[dy, dx] == Status.WALKABLE): # Destination walkable
+                self.exits.append([x, y])
+
+            x += xstep
+            y += ystep
 
 class WildEntry(utils.RawStruct):
     fmt = "2BH"
