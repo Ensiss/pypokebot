@@ -183,7 +183,6 @@ def connection(ctype):
             dx = (ctype == world.ConnectType.LEFT) * (dmap.width - 1)
             dy = y - connection.offset
 
-        print(dx, dy)
         if (0 <= dx < dmap.width and 0 <= dy < dmap.height and # In bounds
             m.map_status[y, x] == world.Status.WALKABLE and # Curr map walkable
             dmap.map_status[dy, dx] == world.Status.WALKABLE): # Destination walkable
