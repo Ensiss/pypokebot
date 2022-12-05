@@ -181,3 +181,49 @@ def toConnection(ctype):
     yield from to(tgt_func, dist_func, 0)
     yield from step(io.directions[ctype - 1])
     return 0
+
+_warp_behaviors = {
+    0x62: io.Key.RIGHT, # Warp to block right
+    0x63: io.Key.LEFT,  # Warp to block left
+    0x64: io.Key.UP,    # Warp to block up
+    0x65: io.Key.DOWN,  # Warp to block down
+    0x6A: io.Key.LEFT,  # Pokecenter stairs up
+    0x6B: io.Key.RIGHT, # Pokecenter stairs down
+    0x6C: io.Key.RIGHT, # Stairs up right
+    0x6D: io.Key.RIGHT, # Stairs down right
+    0x6E: io.Key.LEFT,  # Stairs up left
+    0x6F: io.Key.LEFT   # Stairs down left
+}
+def toWarp(warp_id):
+    p = db.player
+    m = db.getCurrentMap()
+    warp = m.warps[warp_id]
+    max_dist = (m.map_status[warp.y, warp.x] == world.Status.OBSTACLE)
+    if (yield from toPos(warp.x, warp.y, max_dist)) == -1:
+        return -1
+
+    key = None
+    if p.x == warp.x and p.y == warp.y:
+        key = _warp_behaviors[m.map_behavior[warp.y, warp.x]]
+    else:
+        if p.y < warp.y:
+            key = io.Key.DOWN
+        elif p.y > warp.y:
+            key = io.Key.UP
+        elif p.x > warp.x:
+            key = io.Key.LEFT
+        elif p.x < warp.x:
+            key = io.Key.RIGHT
+
+    if key is None:
+        return -1
+
+    # TODO: use step instead, and improve step to allow stepping through doors
+    ow = db.ows[0]
+    owx, owy = ow.dest_x, ow.dest_y
+    while ow.dest_x == owx and ow.dest_y == owy:
+        yield io.press(key)
+    io.releaseAll()
+
+    # TODO: Detect screen fade out more accurately
+    yield from misc.wait(150)
