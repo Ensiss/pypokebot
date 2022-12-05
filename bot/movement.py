@@ -1,3 +1,4 @@
+import numpy as np
 import memory; mem = memory.Memory
 import database; db = database.Database
 import core.io; io = core.io.IO
@@ -59,27 +60,15 @@ def step(btn):
     yield from misc.waitWhile(moving)
     return 0
 
-def to(x, y = None, max_dist = 0):
+def to(target_func, dist_func, max_dist = 0):
     """
-    to(x, y[, maxDist])      Moves to a node in the current map
-    to(id)                   Moves to a person defined by its id
+    Moves to reach a defined target.
+    target_func returns the current target, and is monitored for changes
+    dist_func computes the distance to the current target
+    max_dist is the distance required to successfully reach the target
     """
     def _getOWParams():
         return [[ow.dest_x, ow.dest_y] for ow in db.ows]
-
-    def _getTargetPos(x, y=None):
-        if y is not None:
-            return x, y
-        m = db.getCurrentMap()
-        pers = m.persons[x]
-        for i in range(1, len(db.ows)):
-            ow = db.ows[i]
-            if ow.map_id == 0 and ow.bank_id == 0:
-                break
-            if (ow.map_id == db.player.map_id and ow.bank_id == db.player.bank_id and
-                ow.evt_nb == pers.evt_nb):
-                return ow.dest_x, ow.dest_y
-        return pers.x, pers.y
 
     def _checkNPCs(ows, path):
         """ Check if any moving NPC joined/left the current player path """
@@ -100,23 +89,20 @@ def to(x, y = None, max_dist = 0):
                     break
         return ret
 
-    if y is None:
-        max_dist = 1
     p = db.player
     m = db.getCurrentMap()
     finder = m.makePathfinder()
     ows = _getOWParams()
 
     while True:
-        tgt = _getTargetPos(x, y)
-        path = finder.search(p.x, p.y, *tgt, max_dist)
+        tgt = target_func()
+        path = finder.search(p.x, p.y, lambda n: dist_func(n, tgt), max_dist)
         if path is None:
             print("to error: no path found: (%d,%d) to (%d,%d)" % (p.x, p.y, *tgt))
             return -1
 
         while len(path):
             nx, ny = path[0]
-            # nx, ny = path.pop(0)
             dx = nx - p.x
             dy = ny - p.y
             if dx == 0 and dy == 0:
@@ -134,17 +120,40 @@ def to(x, y = None, max_dist = 0):
                 print("NPC moved, recomputing path")
                 break
 
-            if _getTargetPos(x, y) != tgt:
+            if (target_func() != tgt).any():
                 print("Target moved, recomputing path")
                 break
 
             path.pop(0)
 
-        if abs(p.x - tgt[0]) + abs(p.y - tgt[1]) <= max_dist:
+        if len(path) == 0:
             return 0
     return 0
 
-def connection(ctype):
+def toPos(x, y, max_dist=0):
+    pos = np.array([x, y])
+    tgt_func = lambda: pos
+    dist_func = lambda n, tgt: np.linalg.norm(tgt - [n.x, n.y], ord=1)
+    return (yield from to(tgt_func, dist_func, max_dist))
+
+def toPers(person_id, max_dist=1):
+    def _getTargetPos(p_id):
+        m = db.getCurrentMap()
+        pers = m.persons[p_id]
+        for i in range(1, len(db.ows)):
+            ow = db.ows[i]
+            if ow.map_id == 0 and ow.bank_id == 0:
+                break
+            if (ow.map_id == db.player.map_id and ow.bank_id == db.player.bank_id and
+                ow.evt_nb == pers.evt_nb):
+                return np.array([ow.dest_x, ow.dest_y])
+        return np.array([pers.x, pers.y])
+
+    tgt_func = lambda: _getTargetPos(person_id)
+    dist_func = lambda n, tgt: np.linalg.norm(tgt - [n.x, n.y], ord=1)
+    return (yield from to(tgt_func, dist_func, max_dist))
+
+def toConnection(ctype):
     """
     connection(connect_type)    Leave the current map in the specified direction
     """
@@ -167,6 +176,8 @@ def connection(ctype):
               (ctype, p.bank_id, p.map_id))
         return -1
 
-    yield from to(*connection.exits[0])
+    tgt_func = lambda: connection.exits
+    dist_func = lambda n, tgt: np.linalg.norm(tgt - [n.x, n.y], ord=1, axis=1).min()
+    yield from to(tgt_func, dist_func, 0)
     yield from step(io.directions[ctype - 1])
     return 0

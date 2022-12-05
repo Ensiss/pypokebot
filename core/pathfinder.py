@@ -87,11 +87,12 @@ class Pathfinder:
             Keeps links and other static data
             """
             self.weight = self.heuristic = 0
+            self.dist = 9999
             self.prev = None
 
-        def setHeuristicTo(self, xe, ye):
-            dist = np.sqrt((xe - self.x) ** 2 + (ye - self.y) ** 2)
-            self.heuristic = self.weight + dist
+        def setHeuristic(self, dist):
+            self.dist = dist
+            self.heuristic = self.weight + self.dist
 
     def __init__(self, map_data):
         self.map = map_data
@@ -116,7 +117,11 @@ class Pathfinder:
                 if not self.nodes[y][x].isWalkable():
                     self.nodes[y][x] = None
 
-    def search(self, xs, ys, xe, ye, dist=0):
+    def search(self, xs, ys, dist_func, dist=0):
+        """
+        Returns the path from [xs,ys] to a given target
+        dist_func returns the distance to the target from a node
+        """
         def unlock():
             db.player.unlock()
             database.OWObject.unlock()
@@ -130,13 +135,13 @@ class Pathfinder:
             ow._checkUpdate()
         self.dirty = True
         start = self.getNode(xs, ys)
-        start.setHeuristicTo(xe, ye)
+        start.setHeuristic(dist_func(start))
         openset = [start]
         closedset = []
 
         while len(openset) > 0:
             curr = openset.pop(self._getNextIndex(openset))
-            if abs(curr.x - xe) + abs(curr.y - ye) == dist:
+            if curr.dist == dist:
                 unlock()
                 return self._rebuildPath(curr)
             closedset.append(curr)
@@ -150,7 +155,7 @@ class Pathfinder:
                 if not visited or cost < next_node.weight:
                     next_node.prev = curr
                     next_node.weight = cost
-                    next_node.setHeuristicTo(xe, ye)
+                    next_node.setHeuristic(dist_func(next_node))
                     if next_node not in openset:
                         openset.append(next_node)
         unlock()

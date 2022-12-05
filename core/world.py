@@ -259,7 +259,7 @@ class Connection(utils.RawStruct):
          self.map_id) = super().__init__(addr)
 
     def findExits(self, m):
-        self.exits = []
+        exits = []
         if self.type == ConnectType.NONE or self.type > ConnectType.RIGHT:
             return
         dmap = db.banks[self.bank_id][self.map_id]
@@ -281,10 +281,11 @@ class Connection(utils.RawStruct):
             if (0 <= dx < dmap.width and 0 <= dy < dmap.height and # In bounds
                 m.map_status[y, x] == Status.WALKABLE and # Curr map walkable
                 dmap.map_status[dy, dx] == Status.WALKABLE): # Destination walkable
-                self.exits.append([x, y])
+                exits.append([x, y])
 
             x += xstep
             y += ystep
+        self.exits = np.array(exits)
 
 class WildEntry(utils.RawStruct):
     fmt = "2BH"
