@@ -90,9 +90,12 @@ class Map():
                 tile = tile_dict[t]
                 self.map_bg[y, x] = tile.bg
                 self.map_behavior[y, x] = tile.behavior
+        self.pathfinder = None
 
-    def makePathfinder(self):
-        return Pathfinder(self)
+    def getPathfinder(self):
+        if self.pathfinder is None:
+            self.pathfinder = Pathfinder(self)
+        return self.pathfinder
 
     def plot(self):
         import matplotlib.pyplot as plt

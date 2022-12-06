@@ -91,7 +91,7 @@ def to(target_func, dist_func, max_dist = 0):
 
     p = db.player
     m = db.getCurrentMap()
-    finder = m.makePathfinder()
+    finder = m.getPathfinder()
     ows = _getOWParams()
 
     while True:
