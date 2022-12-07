@@ -197,7 +197,7 @@ _warp_behaviors = {
 def toWarp(warp_id):
     p = db.player
     m = db.getCurrentMap()
-    warp = m.warps[warp_id]
+    warp = m.phys_warps[warp_id]
     max_dist = (m.map_status[warp.y, warp.x] == world.Status.OBSTACLE)
     if (yield from toPos(warp.x, warp.y, max_dist)) == -1:
         return -1

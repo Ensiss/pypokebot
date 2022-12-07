@@ -92,6 +92,12 @@ class Map():
                 self.map_behavior[y, x] = tile.behavior
         self.pathfinder = None
 
+        # Physically reachable warps
+        self.phys_warps = []
+        for warp in self.warps:
+            if self.map_behavior[warp.y, warp.x] != 0:
+                self.phys_warps.append(warp)
+
     def getPathfinder(self):
         if self.pathfinder is None:
             self.pathfinder = Pathfinder(self)
