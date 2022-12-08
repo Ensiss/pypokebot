@@ -72,24 +72,30 @@ class Map():
         sz = self.width * self.height
         data = np.frombuffer(rom[data_ptr:data_ptr+(2 * sz)], dtype=np.uint16)
         data = data.reshape(self.height, self.width)
-        global_ptr = data_hdr.global_tileset.behavior_ptr
-        local_ptr = data_hdr.local_tileset.behavior_ptr
         self.map_status = (data >> 10).astype(np.uint8)
         self.map_tile = (data & 1023)
         self.map_bg = np.zeros(data.shape, dtype=np.uint16)
         self.map_behavior = np.zeros(data.shape, dtype=np.uint16)
+        self.map_blocks = np.zeros(data.shape, dtype=np.uint16)
         tile_dict = {} # Cache tile attribute when possible
         # Fill background and behavior from tilesets
         for y, line in enumerate(self.map_tile):
             for x, t in enumerate(line):
                 if t not in tile_dict:
                     if t < 640:
-                        tile_dict[t] = TileAttr(global_ptr + t * 4)
+                        tileset = data_hdr.global_tileset
+                        tileset_idx = t
                     else:
-                        tile_dict[t] = TileAttr(local_ptr + (t - 640) * 4)
-                tile = tile_dict[t]
-                self.map_bg[y, x] = tile.bg
-                self.map_behavior[y, x] = tile.behavior
+                        tileset = data_hdr.local_tileset
+                        tileset_idx = t - 640
+
+                    block = mem.readU16(tileset.blocks_ptr + tileset_idx * 2)
+                    attr = TileAttr(tileset.behavior_ptr + tileset_idx * 4)
+                    tile_dict[t] = (block, attr)
+                block, attr = tile_dict[t]
+                self.map_bg[y, x] = attr.bg
+                self.map_behavior[y, x] = attr.behavior
+                self.map_blocks[y, x] = block
         self.pathfinder = None
 
         # Physically reachable warps
@@ -153,11 +159,10 @@ class DataHeader(utils.RawStruct):
         self.local_tileset = TilesetHeader(self.local_tileset_ptr)
 
 class TilesetHeader(utils.RawStruct):
-    fmt = "2BH5I"
+    fmt = "2B2x5I"
     def __init__(self, addr):
         (self.compressed,
-         self.primary,
-         self.unknown,
+         self.secondary,
          self.img_ptr,
          self.palette_ptr,
          self.blocks_ptr,
