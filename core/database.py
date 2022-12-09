@@ -60,6 +60,7 @@ class Database():
         # Dynamic data
         Database.pteam = utils.rawArray(pokedata.PokemonData, 0x02024284, 6)
         Database.eteam = utils.rawArray(pokedata.PokemonData, 0x0202402C, 6)
+        Database.battlers = utils.rawArray(pokedata.BattleData, 0x02023BE4, 4)
         Database.player = player.Player()
         Database.bag = bag.Bag()
         Database.ows = utils.rawArray(OWObject, 0x02036E38, 16)
