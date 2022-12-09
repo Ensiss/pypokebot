@@ -91,7 +91,7 @@ class BattleData(IPokeData):
          self.speed,
          self.spatk,
          self.spdef) = unpacked[:6]
-        self.moves[4] = list(unpacked[6:10])
+        self.moves = list(unpacked[6:10])
         self.ivs = unpacked[10]
         (self.hp_buff,
          self.atk_buff,
@@ -105,7 +105,7 @@ class BattleData(IPokeData):
          self.type1,
          self.type2,
          self.padding) = unpacked[19:23]
-        self.pps[4] = list(unpacked[23:27])
+        self.pps = list(unpacked[23:27])
         (self.curr_hp,
          self.level,
          self.happiness,
