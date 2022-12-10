@@ -20,3 +20,34 @@ def waitWhile(condition):
     """
     while condition():
         yield
+
+def moveCursor(w, dest, func):
+    """
+    Moves the cursor to a specific position in a box
+    w     Width of the box
+    dest  Index of destination position
+    func  Function returning the current cursor position
+    """
+    dx = dest % w
+    dy = dest // w
+
+    while True:
+        cursor = func()
+        cx = cursor % w
+        cy = cursor // w
+        btn = None
+
+        if cx > dx:
+            btn = io.Key.LEFT
+        elif cy > dy:
+            btn = io.Key.UP
+        elif cx < dx:
+            btn = io.Key.RIGHT
+        elif cy < dy:
+            btn = io.Key.DOWN
+        else:
+            return 0
+
+        yield io.pressOnly(btn)
+        yield io.release(btn)
+    return 0
