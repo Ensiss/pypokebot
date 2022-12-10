@@ -1,3 +1,5 @@
+import core.io; io = core.io.IO
+
 def wait(nframes):
     """ Suspends execution during <nframes> frames """
     for i in range(nframes):
@@ -51,3 +53,10 @@ def moveCursor(w, dest, func):
         yield io.pressOnly(btn)
         yield io.release(btn)
     return 0
+
+def fullPress(btn):
+    """
+    Fully presses a button then releases it
+    """
+    yield io.press(btn)
+    yield io.release(btn)
