@@ -1,6 +1,7 @@
-import utils
+from itertools import permutations
 import numpy as np
 import enum
+import utils
 import memory; mem = memory.Memory
 import database; db = database.Database
 
@@ -91,7 +92,8 @@ class BattleData(IPokeData):
          self.speed,
          self.spatk,
          self.spdef) = unpacked[:6]
-        self.moves = list(unpacked[6:10])
+        self.move_ids = list(unpacked[6:10])
+        self.moves = [db.moves[idx] for idx in unpacked[6:10] if idx != 0]
         self.ivs = unpacked[10]
         (self.hp_buff,
          self.atk_buff,
@@ -155,25 +157,13 @@ class PokemonData(IPokeData):
         self.evasion_buff = 0
 
         # Decrypt substructures
-        sub_types = [Growth, Attacks, EVs, Misc]
-        subs = [None] * 4
-        nmax = 24
-        pick = np.uint8((1 << 4) - 1)
         key = self.personality ^ self.ot_id
-        order = self.personality % 24
-        self.xored = (np.frombuffer(self.data, dtype=np.uint32) ^ key).tobytes()
-        for n in range(4, 0, -1):
-            nmax /= n
-            i = order / nmax
-            order %= nmax
-            count = -1
-            for j in range(4):
-                if pick & (1 << j):
-                    count += 1
-                    if count == i:
-                        break
-            pick &= np.uint8(~(1 << j))
-            subs[j] = sub_types[j](4 * 3 * (4 - n), self.xored)
+        order = list(permutations(range(4)))[self.personality % 24]
+        sub_types = [Growth, Attacks, EVs, Misc]
+        xored = (np.frombuffer(self.data, dtype=np.uint32) ^ key).tobytes()
+        subs = [None] * 4
+        for i in range(4):
+            subs[order[i]] = sub_types[order[i]](12 * i, xored)
         (self.growth,
          self.attacks,
          self.evs,
@@ -195,7 +185,8 @@ class Attacks(utils.RawStruct):
     fmt = "4H4B"
     def __init__(self, addr, buf):
         unpacked = super().__init__(addr, buf)
-        self.moves = list(unpacked[:4])
+        self.move_ids = list(unpacked[:4])
+        self.moves = [db.moves[idx] for idx in unpacked[:4] if idx != 0]
         self.pps = list(unpacked[4:])
 
 class EVs(utils.RawStruct):
