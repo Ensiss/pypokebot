@@ -69,8 +69,10 @@ class IPokeData(utils.RawStruct, utils.AutoUpdater):
     def potentialDamage(self, target, move):
         if type(move) is int:
             move = db.moves[move]
+        if move.power == 0:
+            return 0, 0
         atk = self.getRealSpAtk() if move.isSpecial() else self.getRealAtk()
-        defense = self.getRealSpDef() if move.isSpecial() else self.getRealDef()
+        defense = target.getRealSpDef() if move.isSpecial() else target.getRealDef()
         stab = self.sameTypeAttackBonus(move)
         effectiveness = target.typeEffectiveness(move)
         dmg = 2.0 * self.level / 5.0 + 2
