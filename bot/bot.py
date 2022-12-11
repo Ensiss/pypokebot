@@ -14,6 +14,28 @@ class Bot():
         self.wait_after_battle = 30
         self.saved_keys = 0
 
+    def getBestMove():
+        """
+        Returns the index of the best move the current pokemon can use
+        Currently computed as the highest damaging move if not lethal,
+        or the weakest move that will still kill.
+        TODO: also consider long term strategies with status affecting moves
+        """
+        p = db.battlers[0]
+        e = db.battlers[1]
+        best = 0
+        mindmg = 0
+
+        for i, move in enumerate(p.moves):
+            if p.pps[i] == 0:
+                continue
+            dmg = p.potentialDamage(e, move)
+            if ((mindmg < e.curr_hp and dmg[0] > mindmg) or
+                (dmg[0] > e.curr_hp and dmg[0] < mindmg)):
+                best = i
+                mindmg = dmg[0]
+        return best
+
     def onPreFrame(self):
         while True:
             if db.isInBattle() != self.was_in_battle:
