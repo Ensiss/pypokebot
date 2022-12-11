@@ -20,6 +20,7 @@ import database; db = database.Database
 import core.io; io = core.io.IO
 import misc
 import movement
+import battle
 from bot import Bot
 
 parser = argparse.ArgumentParser(description="Pokebot")
@@ -81,17 +82,26 @@ def mainAI():
     while core.frame_counter < 800:
         yield io.toggle(core.KEY_A)
     io.turbo = False
-    yield from misc.wait(60*1)
+    yield from movement.toConnection(world.ConnectType.DOWN)
+    grass = np.vstack(np.where(db.getCurrentMap().map_behavior == 0x202)[::-1]).T
+    yield from movement.toAny(grass)
     while True:
-        print(db.player.x, db.player.y, db.isInBattle())
         yield from movement.turn(core.KEY_DOWN)
         yield from movement.turn(core.KEY_LEFT)
         yield from movement.turn(core.KEY_UP)
         yield from movement.turn(core.KEY_RIGHT)
 
 def battleAI():
-    print(db.pteam[0].nick, "vs", db.eteam[0].nick)
+    print(db.pteam[0].species.name, "vs", db.eteam[0].species.name)
+
     while True:
-        yield io.toggle(core.KEY_A)
+        if db.battle_menu.is_open and db.battle_menu.menu == 0:
+            best_move = Bot.getBestMove()
+            print("Best move: %s" % db.battlers[0].moves[best_move].name)
+            yield from battle.attack(best_move)
+        else:
+            yield io.toggle(core.KEY_A)
 
 runGame(Bot(mainAI, battleAI))
+pygame.display.quit()
+m = db.getCurrentMap()
