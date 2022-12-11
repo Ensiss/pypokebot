@@ -130,11 +130,16 @@ def to(target_func, dist_func, max_dist = 0):
             return 0
     return 0
 
-def toPos(x, y, max_dist=0):
-    pos = np.array([x, y])
-    tgt_func = lambda: pos
-    dist_func = lambda n, tgt: np.linalg.norm(tgt - [n.x, n.y], ord=1)
+def toAny(locs, max_dist=0):
+    """
+    Run pathfinding to a collection of nodes stored as a 2D numpy array
+    """
+    tgt_func = lambda: locs
+    dist_func = lambda n, tgt: np.linalg.norm(tgt - [n.x, n.y], ord=1, axis=1).min()
     return (yield from to(tgt_func, dist_func, max_dist))
+
+def toPos(x, y, max_dist=0):
+    return (yield from toAny(np.array([[x, y]]), max_dist))
 
 def toPers(person_id, max_dist=1):
     def _getTargetPos(p_id):
@@ -176,9 +181,7 @@ def toConnection(ctype):
               (ctype, p.bank_id, p.map_id))
         return -1
 
-    tgt_func = lambda: connection.exits
-    dist_func = lambda n, tgt: np.linalg.norm(tgt - [n.x, n.y], ord=1, axis=1).min()
-    yield from to(tgt_func, dist_func, 0)
+    yield from toAny(connection.exits)
     yield from step(io.directions[ctype - 1])
     return 0
 
