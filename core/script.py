@@ -20,18 +20,18 @@ class Command:
         "byte/var": "H"
     }
 
-    def __init__(self, bcode, str_fmt, args, hook=None):
-        self.bcode = bcode
+    def __init__(self, opcode, str_fmt, args, hook=None):
+        self.opcode = opcode
         self.str_fmt = str_fmt
         self.name = self.str_fmt.split(" ")[0]
         self.args = args
         self.hook = hook
-        self.fmt = "<"
+        self.fmt = ""
         for arg in self.args.split(" "):
             if arg == "":
                 continue
             self.fmt += Command.arg_fmts[arg]
-        self.size = struct.calcsize(self.fmt) + 1 # Add 1 for bytecode
+        self.size = struct.calcsize("<" + self.fmt) + 1 # Add 1 for bytecode
 
     def __len__(self):
         return self.size
