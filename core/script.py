@@ -54,15 +54,46 @@ class Script:
         self.addr = addr
 
     def print(self):
-        instr = Instruction(self.addr)
-        while True:
-            if instr.cmd.str_fmt == "":
-                print("Error: Unknown opcode 0x%02X" % instr.opcode)
-                break
-            print(instr)
-            if instr.opcode in [0x02, 0x03]: # end/return
-                break
-            instr = Instruction(instr.addr + len(instr))
+        def alreadyVisited(addr):
+            for addr_min, addr_max in ranges:
+                if addr_min <= addr < addr_max:
+                    return True
+            if addr in addrs:
+                return True
+            return False
+
+        def subPrint(addr):
+            instr = Instruction(addr)
+            jumps = []
+            while True:
+                # Exit on unknown opcodes
+                if instr.cmd.str_fmt == "":
+                    print("Error: Unknown opcode 0x%02X" % instr.opcode)
+                    break
+                # Print current instruction
+                header = (" "*8) + "%02x: " % (instr.addr & 0xFF)
+                if instr.addr == addr:
+                    header = "0x%08x: " % instr.addr
+                print(header + str(instr))
+                # Store addresses of jumps
+                if instr.cmd.hook in ["_branch", "_if"]:
+                    jumps.append(instr.args[-1])
+                # Exit at function end
+                if instr.opcode in [0x02, 0x03]: # end/return
+                    break
+                instr = Instruction(instr.addr + len(instr))
+            ranges.append((addr, instr.addr + len(instr)))
+            for jump in jumps:
+                if not alreadyVisited(jump):
+                    addrs.append(jump)
+
+        ranges = []
+        addrs = [self.addr]
+        while len(addrs) > 0:
+            addr = addrs.pop(0)
+            if addr != self.addr:
+                print("")
+            subPrint(addr)
 
 cmds = [
   Command(0x00, "nop", ""),
