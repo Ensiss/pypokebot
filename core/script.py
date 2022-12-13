@@ -36,6 +36,34 @@ class Command:
     def __len__(self):
         return self.size
 
+class Instruction:
+    def __init__(self, addr):
+        self.addr = addr
+        self.opcode = mem.readU8(addr)
+        self.cmd = cmds[self.opcode]
+        self.args = mem.unpack(addr+1, self.cmd.fmt)
+
+    def __len__(self):
+        return len(self.cmd)
+
+    def __str__(self):
+        return self.cmd.str_fmt % self.args
+
+class Script:
+    def __init__(self, addr):
+        self.addr = addr
+
+    def print(self):
+        instr = Instruction(self.addr)
+        while True:
+            if instr.cmd.str_fmt == "":
+                print("Error: Unknown opcode 0x%02X" % instr.opcode)
+                break
+            print(instr)
+            if instr.opcode in [0x02, 0x03]: # end/return
+                break
+            instr = Instruction(instr.addr + len(instr))
+
 cmds = [
   Command(0x00, "nop", ""),
   Command(0x01, "nop1", ""),
