@@ -36,6 +36,15 @@ class Command:
     def __len__(self):
         return self.size
 
+    def format(self, instr):
+        return self.str_fmt % instr.args
+
+class CommandIf(Command):
+    def format(self, instr):
+        op = ["<", "==", ">", "<=", ">=", "!=", "?"][min(6, instr.args[0])]
+        cmd = "goto" if instr.opcode == 0x06 else "call"
+        return  "if %s %s 0x%08x" % (op, cmd, instr.args[1])
+
 class Instruction:
     def __init__(self, addr):
         self.addr = addr
@@ -47,7 +56,7 @@ class Instruction:
         return len(self.cmd)
 
     def __str__(self):
-        return self.cmd.str_fmt % self.args
+        return self.cmd.format(self)
 
 class Script:
     def __init__(self, addr):
@@ -75,8 +84,8 @@ class Script:
                 if instr.addr == addr:
                     header = "0x%08x: " % instr.addr
                 print(header + str(instr))
-                # Store addresses of jumps
-                if instr.cmd.hook in ["_branch", "_if"]:
+                # Store destination of jumps and conditions
+                if 0x04 <= instr.opcode <= 0x07:
                     jumps.append(instr.args[-1])
                 # Exit at function end
                 if instr.opcode in [0x02, 0x03]: # end/return
@@ -100,10 +109,10 @@ cmds = [
   Command(0x01, "nop1", ""),
   Command(0x02, "end", ""),
   Command(0x03, "return", ""),
-  Command(0x04, "call 0x%08x", "ptr", "_branch"),
-  Command(0x05, "goto 0x%08x", "ptr", "_branch"),
-  Command(0x06, "if1 %#x 0x%08x", "byte ptr", "_if"),
-  Command(0x07, "if2 %#x 0x%08x", "byte ptr", "_if"),
+  Command(0x04, "call 0x%08x", "ptr"),
+  Command(0x05, "goto 0x%08x", "ptr"),
+  CommandIf(0x06, "if1 %#x 0x%08x", "byte ptr"),
+  CommandIf(0x07, "if2 %#x 0x%08x", "byte ptr"),
   Command(0x08, "gotostd %#x", "byte"),
   Command(0x09, "callstd %#x", "byte"),
   Command(0x0A, "gotostdif %#x %#x", "byte byte"),
