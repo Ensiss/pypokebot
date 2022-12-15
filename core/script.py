@@ -20,12 +20,11 @@ class Command:
         "byte/var": "H"
     }
 
-    def __init__(self, opcode, str_fmt, args, hook=None):
+    def __init__(self, opcode, str_fmt, args):
         self.opcode = opcode
         self.str_fmt = str_fmt
         self.name = self.str_fmt.split(" ")[0]
         self.args = args
-        self.hook = hook
         self.fmt = ""
         for arg in self.args.split(" "):
             if arg == "":
