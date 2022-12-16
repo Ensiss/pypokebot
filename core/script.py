@@ -124,6 +124,33 @@ class Script:
                 print("")
             subPrint(addr)
 
+class Context:
+    FLAG_COUNT = 0x900
+    VAR_COUNT = 0x100
+    TEMP_COUNT = 0x1F
+    BANKS_COUNT = 0x04
+    BUFF_COUNT = 0x03
+    VAR_OFFSET = 0x4000
+    TEMP_OFFSET = 0x8000
+
+    def isFlag(x):
+        return x < FLAG_COUNT
+    def isBank(x):
+        return x < BANK_COUNT
+    def isVar(x):
+        return x < VAR_COUNT
+    def isTemp(x):
+        return x < TEMP_COUNT
+
+    def __init__(self):
+        pass
+
+    def copy(self):
+        pass
+
+    def fromMemory(self):
+        ptr = mem.readU32(0x03005008)
+
 cmds = [
     Command(0x00, "nop", ""),
     Command(0x01, "nop1", ""),
