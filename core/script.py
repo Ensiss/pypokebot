@@ -124,7 +124,7 @@ class Script:
                 print("")
             subPrint(addr)
 
-class Context:
+class VM:
     FLAG_COUNT = 0x900
     VAR_COUNT = 0x100
     TEMP_COUNT = 0x1F
@@ -133,23 +133,35 @@ class Context:
     VAR_OFFSET = 0x4000
     TEMP_OFFSET = 0x8000
 
-    def isFlag(x):
-        return x < FLAG_COUNT
-    def isBank(x):
-        return x < BANK_COUNT
-    def isVar(x):
-        return x < VAR_COUNT
-    def isTemp(x):
-        return x < TEMP_COUNT
+    class Context:
+        def isFlag(x):
+            return x < VM.FLAG_COUNT
+        def isBank(x):
+            return x < VM.BANK_COUNT
+        def isVar(x):
+            return x < VM.VAR_COUNT
+        def isTemp(x):
+            return x < VM.TEMP_COUNT
 
-    def __init__(self):
-        pass
+        def __init__(self, flags, variables, temps, banks):
+            self.flags = flags
+            self.variables = variables
+            self.temps = temps
+            self.banks = banks
 
-    def copy(self):
-        pass
+        def copy(self):
+            return VM.Context(self.flags.copy(),
+                              self.variables.copy(),
+                              self.temps.copy(),
+                              self.banks.copy())
 
-    def fromMemory(self):
-        ptr = mem.readU32(0x03005008)
+        def fromMemory():
+            ptr = mem.readU32(0x03005008)
+            flags = np.frombuffer(mem.bufferFromAddr(ptr + 0xEE0)[:VM.FLAG_COUNT >> 3], dtype=np.uint8)
+            variables = np.frombuffer(mem.bufferFromAddr(ptr + 0x1000)[:VM.VAR_COUNT], dtype=np.uint16)
+            temps = np.zeros(VM.TEMP_COUNT, dtype=np.uint16)
+            banks = np.zeros(VM.BANKS_COUNT, dtype=np.uint32)
+            return VM.Context(flags, variables, temps, banks)
 
 cmds = [
     Command(0x00, "nop", ""),
