@@ -138,9 +138,9 @@ class VM:
     def isBank(x):
         return x < VM.BANK_COUNT
     def isVar(x):
-        return x < VM.VAR_COUNT
+        return VM.VAR_OFFSET <= x < VM.VAR_OFFSET + VM.VAR_COUNT
     def isTemp(x):
-        return x < VM.TEMP_COUNT
+        return VM.TEMP_OFFSET <= x < VM.TEMP_OFFSET + VM.TEMP_COUNT
 
     class Context:
         def __init__(self, flags, variables, temps, banks):
