@@ -133,16 +133,16 @@ class VM:
     VAR_OFFSET = 0x4000
     TEMP_OFFSET = 0x8000
 
-    class Context:
-        def isFlag(x):
-            return x < VM.FLAG_COUNT
-        def isBank(x):
-            return x < VM.BANK_COUNT
-        def isVar(x):
-            return x < VM.VAR_COUNT
-        def isTemp(x):
-            return x < VM.TEMP_COUNT
+    def isFlag(x):
+        return x < VM.FLAG_COUNT
+    def isBank(x):
+        return x < VM.BANK_COUNT
+    def isVar(x):
+        return x < VM.VAR_COUNT
+    def isTemp(x):
+        return x < VM.TEMP_COUNT
 
+    class Context:
         def __init__(self, flags, variables, temps, banks):
             self.flags = flags
             self.variables = variables
@@ -162,6 +162,26 @@ class VM:
             temps = np.zeros(VM.TEMP_COUNT, dtype=np.uint16)
             banks = np.zeros(VM.BANKS_COUNT, dtype=np.uint32)
             return VM.Context(flags, variables, temps, banks)
+
+        def getFlag(self, idx):
+            if VM.isFlag(idx):
+                return bool(self.flags[idx >> 3] & (1 << (idx % 8)))
+            print("Context error: flag %d does not exist" % idx)
+            return 0
+
+        def getVar(self, idx):
+            if VM.isVar(idx):
+                return self.variables[idx - VM.VAR_OFFSET]
+            elif VM.isTemp(idx):
+                return self.temps[idx - VM.TEMP_OFFSET]
+            print("Context error: variable %d does not exist" % idx)
+            return 0
+
+        def getBank(self, idx):
+            if VM.isBank(idx):
+                return self.banks[idx]
+            print("Context error: bank %d does not exist" % idx)
+            return 0
 
 cmds = [
     Command(0x00, "nop", ""),
