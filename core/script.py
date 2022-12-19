@@ -128,7 +128,7 @@ class VM:
     FLAG_COUNT = 0x900
     VAR_COUNT = 0x100
     TEMP_COUNT = 0x1F
-    BANKS_COUNT = 0x04
+    BANK_COUNT = 0x04
     BUFF_COUNT = 0x03
     VAR_OFFSET = 0x4000
     TEMP_OFFSET = 0x8000
@@ -160,8 +160,8 @@ class VM:
             flags = np.frombuffer(mem.bufferFromAddr(ptr + 0xEE0)[:VM.FLAG_COUNT >> 3], dtype=np.uint8)
             variables = np.frombuffer(mem.bufferFromAddr(ptr + 0x1000)[:VM.VAR_COUNT], dtype=np.uint16)
             temps = np.zeros(VM.TEMP_COUNT, dtype=np.uint16)
-            banks = np.zeros(VM.BANKS_COUNT, dtype=np.uint32)
-            return VM.Context(flags, variables, temps, banks)
+            banks = np.zeros(VM.BANK_COUNT, dtype=np.uint32)
+            return VM.Context(flags.copy(), variables.copy(), temps.copy(), banks.copy())
 
         def getFlag(self, idx):
             if VM.isFlag(idx):
@@ -182,6 +182,29 @@ class VM:
                 return self.banks[idx]
             print("Context error: bank %d does not exist" % idx)
             return 0
+
+        def setFlag(self, idx, val):
+            if not VM.isFlag(idx):
+                print("Context error: flag %d does not exist" % idx)
+                return
+            if val:
+                self.flags[idx >> 3] |= (1 << (idx % 8))
+            else:
+                self.flags[idx >> 3] &= ~(1 << (idx % 8))
+
+        def setVar(self, idx, val):
+            if VM.isVar(idx):
+                self.variables[idx - VM.VAR_OFFSET] = val
+            elif VM.isTemp(idx):
+                self.temps[idx - VM.TEMP_OFFSET] = val
+            else:
+                print("Context error: variable %d does not exist" % idx)
+
+        def setBank(self, idx, val):
+            if VM.isBank(idx):
+                self.banks[idx] = val
+            else:
+                print("Context error: bank %d does not exist" % idx)
 
 cmds = [
     Command(0x00, "nop", ""),
