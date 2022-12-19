@@ -161,7 +161,7 @@ class VM:
             variables = np.frombuffer(mem.bufferFromAddr(ptr + 0x1000)[:VM.VAR_COUNT], dtype=np.uint16)
             temps = np.zeros(VM.TEMP_COUNT, dtype=np.uint16)
             banks = np.zeros(VM.BANK_COUNT, dtype=np.uint32)
-            return VM.Context(flags.copy(), variables.copy(), temps.copy(), banks.copy())
+            return VM.Context(flags.copy(), variables.copy(), temps, banks)
 
         def getFlag(self, idx):
             if VM.isFlag(idx):
