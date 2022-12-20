@@ -150,11 +150,18 @@ class VM:
                 self.variables = np.frombuffer(mem.bufferFromAddr(ptr + 0x1000)[:VM.VAR_COUNT], dtype=np.uint16).copy()
                 self.temps = np.zeros(VM.TEMP_COUNT, dtype=np.uint16)
                 self.banks = np.zeros(VM.BANK_COUNT, dtype=np.uint32)
+                self.cmp1 = self.cmp2 = 0
+                self.pc = 0
+                self.stack = []
             else:
                 self.flags = other.flags.copy()
                 self.variables = other.variables.copy()
                 self.temps = other.temps.copy()
                 self.banks = other.banks.copy()
+                self.cmp1 = other.cmp1
+                self.cmp2 = other.cmp2
+                self.pc = other.pc
+                self.stack = other.stack.copy()
 
         def copy(self):
             return VM.Context(self)
