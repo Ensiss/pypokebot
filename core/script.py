@@ -144,17 +144,17 @@ class VM:
 
     class Context:
         def __init__(self, other=None):
-            if other is not None:
-                self.flags = other.flags.copy()
-                self.variables = other.variables.copy()
-                self.temps = other.temps.copy()
-                self.banks = other.banks.copy()
-            else:
+            if other is None:
                 ptr = mem.readU32(0x03005008)
                 self.flags = np.frombuffer(mem.bufferFromAddr(ptr + 0xEE0)[:VM.FLAG_COUNT >> 3], dtype=np.uint8).copy()
                 self.variables = np.frombuffer(mem.bufferFromAddr(ptr + 0x1000)[:VM.VAR_COUNT], dtype=np.uint16).copy()
                 self.temps = np.zeros(VM.TEMP_COUNT, dtype=np.uint16)
                 self.banks = np.zeros(VM.BANK_COUNT, dtype=np.uint32)
+            else:
+                self.flags = other.flags.copy()
+                self.variables = other.variables.copy()
+                self.temps = other.temps.copy()
+                self.banks = other.banks.copy()
 
         def copy(self):
             return VM.Context(self)
