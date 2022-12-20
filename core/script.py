@@ -143,7 +143,7 @@ class VM:
         return VM.TEMP_OFFSET <= x < VM.TEMP_OFFSET + VM.TEMP_COUNT
 
     class Context:
-        def __init__(self, other=None):#flags, variables, temps, banks):
+        def __init__(self, other=None):
             if other is not None:
                 self.flags = other.flags.copy()
                 self.variables = other.variables.copy()
