@@ -143,25 +143,21 @@ class VM:
         return VM.TEMP_OFFSET <= x < VM.TEMP_OFFSET + VM.TEMP_COUNT
 
     class Context:
-        def __init__(self, flags, variables, temps, banks):
-            self.flags = flags
-            self.variables = variables
-            self.temps = temps
-            self.banks = banks
+        def __init__(self, other=None):#flags, variables, temps, banks):
+            if other is not None:
+                self.flags = other.flags.copy()
+                self.variables = other.variables.copy()
+                self.temps = other.temps.copy()
+                self.banks = other.banks.copy()
+            else:
+                ptr = mem.readU32(0x03005008)
+                self.flags = np.frombuffer(mem.bufferFromAddr(ptr + 0xEE0)[:VM.FLAG_COUNT >> 3], dtype=np.uint8).copy()
+                self.variables = np.frombuffer(mem.bufferFromAddr(ptr + 0x1000)[:VM.VAR_COUNT], dtype=np.uint16).copy()
+                self.temps = np.zeros(VM.TEMP_COUNT, dtype=np.uint16)
+                self.banks = np.zeros(VM.BANK_COUNT, dtype=np.uint32)
 
         def copy(self):
-            return VM.Context(self.flags.copy(),
-                              self.variables.copy(),
-                              self.temps.copy(),
-                              self.banks.copy())
-
-        def fromMemory():
-            ptr = mem.readU32(0x03005008)
-            flags = np.frombuffer(mem.bufferFromAddr(ptr + 0xEE0)[:VM.FLAG_COUNT >> 3], dtype=np.uint8)
-            variables = np.frombuffer(mem.bufferFromAddr(ptr + 0x1000)[:VM.VAR_COUNT], dtype=np.uint16)
-            temps = np.zeros(VM.TEMP_COUNT, dtype=np.uint16)
-            banks = np.zeros(VM.BANK_COUNT, dtype=np.uint32)
-            return VM.Context(flags.copy(), variables.copy(), temps, banks)
+            return VM.Context(self)
 
         def getFlag(self, idx):
             if VM.isFlag(idx):
