@@ -20,6 +20,15 @@ class Command:
         "byte/var": "H"
     }
 
+    cmd_op = [
+        lambda a, b: a < b,
+        lambda a, b: a == b,
+        lambda a, b: a > b,
+        lambda a, b: a <= b,
+        lambda a, b: a >= b,
+        lambda a, b: a != b
+    ]
+
     def __init__(self, opcode, str_fmt, args):
         self.opcode = opcode
         self.str_fmt = str_fmt
@@ -41,11 +50,39 @@ class Command:
     def unrolledString(self, addr):
         return mem.readPokeStr(addr).replace("\n", " ")
 
+    def execute(self, vm, ctx, instr):
+        return
+
+class CommandCall(Command):
+    def execute(self, vm, ctx, instr):
+        ctx.stack.append(instr.next_addr)
+        ctx.pc = instr.args[0]
+
+class CommandGoto(Command):
+    def execute(self, vm, ctx, instr):
+        ctx.pc = instr.args[0]
+
 class CommandIf(Command):
     def format(self, instr):
         op = ["<", "==", ">", "<=", ">=", "!=", "?"][min(6, instr.args[0])]
         cmd = "goto" if instr.opcode == 0x06 else "call"
         return  "if %s %s 0x%08x" % (op, cmd, instr.args[1])
+
+class CommandIf1(CommandIf):
+    def execute(self, vm, ctx, instr):
+        if instr.args[0] > 5:
+            print("If1 error: no operator %d" % instr.args[0])
+            return
+        if Command.cmd_op[instr.args[0]](ctx.cmp1, ctx.cmp2):
+            CommandGoto.execute(self, vm, ctx, instr)
+
+class CommandIf2(CommandIf):
+    def execute(self, vm, ctx, instr):
+        if instr.args[0] > 5:
+            print("If2 error: no operator %d" % instr.args[0])
+            return
+        if Command.cmd_op[instr.args[0]](ctx.cmp1, ctx.cmp2):
+            CommandCall.execute(self, vm, ctx, instr)
 
 class CommandLoadPointer(Command):
     def format(self, instr):
@@ -215,10 +252,10 @@ cmds = [
     Command(0x01, "nop1", ""),
     Command(0x02, "end", ""),
     Command(0x03, "return", ""),
-    Command(0x04, "call 0x%08x", "ptr"),
-    Command(0x05, "goto 0x%08x", "ptr"),
-    CommandIf(0x06, "if1 %#x 0x%08x", "byte ptr"),
-    CommandIf(0x07, "if2 %#x 0x%08x", "byte ptr"),
+    CommandCall(0x04, "call 0x%08x", "ptr"),
+    CommandGoto(0x05, "goto 0x%08x", "ptr"),
+    CommandIf1(0x06, "if1 %#x 0x%08x", "byte ptr"),
+    CommandIf2(0x07, "if2 %#x 0x%08x", "byte ptr"),
     Command(0x08, "gotostd %#x", "byte"),
     Command(0x09, "callstd %#x", "byte"),
     Command(0x0A, "gotostdif %#x %#x", "byte byte"),
