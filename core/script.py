@@ -71,6 +71,7 @@ class Instruction:
         self.opcode = mem.readU8(addr)
         self.cmd = cmds[self.opcode]
         self.args = mem.unpack(addr+1, self.cmd.fmt)
+        self.next_addr = self.addr + len(self.cmd)
 
     def __len__(self):
         return len(self.cmd)
@@ -110,8 +111,8 @@ class Script:
                 # Exit at function end
                 if instr.opcode in [0x02, 0x03]: # end/return
                     break
-                instr = Instruction(instr.addr + len(instr))
-            ranges.append((addr, instr.addr + len(instr)))
+                instr = Instruction(instr.next_addr)
+            ranges.append((addr, instr.next_addr))
             for jump in jumps:
                 if not alreadyVisited(jump):
                     addrs.append(jump)
