@@ -87,6 +87,20 @@ class CommandIf2(CommandIf):
 class CommandLoadPointer(Command):
     def format(self, instr):
         return "loadpointer %d \"%s\"" % (instr.args[0], self.unrolledString(instr.args[1]))
+    def execute(self, vm, ctx, instr):
+        ctx.setBank(instr.args[0], instr.args[1])
+
+class CommandSetByte2(Command):
+    def execute(self, vm, ctx, instr):
+        ctx.setBank(instr.args[0], instr.args[1])
+
+class CommandLoadByteFromPtr(Command):
+    def execute(self, vm, ctx, instr):
+        ctx.setBank(instr.args[0], mem.readU8(instr.args[1]))
+
+class CommandCopyScriptBanks(Command):
+    def execute(self, vm, ctx, instr):
+        ctx.setBank(instr.args[0], ctx.getBank(instr.args[1]))
 
 class CommandBufferString(Command):
     def format(self, instr):
@@ -264,11 +278,11 @@ cmds = [
     Command(0x0D, "killscript", ""),
     Command(0x0E, "setbyte %#x", "byte"),
     CommandLoadPointer(0x0F, "loadpointer %d %#x", "bank dword"),
-    Command(0x10, "setbyte2 %d %#x", "bank byte"),
+    CommandSetByte2(0x10, "setbyte2 %d %#x", "bank byte"),
     Command(0x11, "writebytetooffset %#x 0x%08x", "byte ptr"),
-    Command(0x12, "loadbytefrompointer %d 0x%08x", "bank ptr"),
+    CommandLoadByteFromPtr(0x12, "loadbytefrompointer %d 0x%08x", "bank ptr"),
     Command(0x13, "setfarbyte %d 0x%08x", "bank ptr"),
-    Command(0x14, "copyscriptbanks %d %d", "bank bank"),
+    CommandCopyScriptBanks(0x14, "copyscriptbanks %d %d", "bank bank"),
     Command(0x15, "copybyte 0x%08x 0x%08x", "ptr ptr"),
     Command(0x16, "setvar %#x %#x", "var word"),
     Command(0x17, "addvar %#x %#x", "var word"),
