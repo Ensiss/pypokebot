@@ -102,6 +102,29 @@ class CommandCopyScriptBanks(Command):
     def execute(self, vm, ctx, instr):
         ctx.setBank(instr.args[0], ctx.getBank(instr.args[1]))
 
+class CommandSetVar(Command):
+    def execute(self, vm, ctx, instr):
+        ctx.setVar(instr.args[0], instr.args[1])
+
+class CommandAddVar(Command):
+    def execute(self, vm, ctx, instr):
+        ctx.setVar(instr.args[0], ctx.getVar(instr.args[0]) + instr.args[1])
+
+class CommandSubVar(Command):
+    def execute(self, vm, ctx, instr):
+        ctx.setVar(instr.args[0], ctx.getVar(instr.args[0]) - instr.args[1])
+
+class CommandCopyVar(Command):
+    def execute(self, vm, ctx, instr):
+        ctx.setVar(instr.args[0], ctx.getVar(instr.args[1]))
+
+class CommandCopyVarIfNotZero(Command):
+    def execute(self, vm, ctx, instr):
+        if VM.isVar(instr.args[1]):
+            CommandCopyVar.execute(self, vm, ctx, instr)
+        else:
+            CommandSetVar.execute(self, vm, ctx, instr)
+
 class CommandBufferString(Command):
     def format(self, instr):
         return "bufferstring %d \"%s\"" % (instr.args[0], self.unrolledString(instr.args[1]))
@@ -284,11 +307,11 @@ cmds = [
     Command(0x13, "setfarbyte %d 0x%08x", "bank ptr"),
     CommandCopyScriptBanks(0x14, "copyscriptbanks %d %d", "bank bank"),
     Command(0x15, "copybyte 0x%08x 0x%08x", "ptr ptr"),
-    Command(0x16, "setvar %#x %#x", "var word"),
-    Command(0x17, "addvar %#x %#x", "var word"),
-    Command(0x18, "subvar %#x %#x", "var word/var"),
-    Command(0x19, "copyvar %#x %#x", "var var"),
-    Command(0x1A, "copyvarifnotzero %#x %#x", "var word/var"),
+    CommandSetVar(0x16, "setvar %#x %#x", "var word"),
+    CommandAddVar(0x17, "addvar %#x %#x", "var word"),
+    CommandSubVar(0x18, "subvar %#x %#x", "var word/var"),
+    CommandCopyVar(0x19, "copyvar %#x %#x", "var var"),
+    CommandCopyVarIfNotZero(0x1A, "copyvarifnotzero %#x %#x", "var word/var"),
     Command(0x1B, "comparebanks %d %d", "bank bank"),
     Command(0x1C, "comparebanktobyte %d %#x", "bank byte"),
     Command(0x1D, "comparebanktofarbyte %d 0x%08x", "bank ptr"),
