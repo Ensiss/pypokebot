@@ -125,6 +125,38 @@ class CommandCopyVarIfNotZero(Command):
         else:
             CommandSetVar.execute(self, vm, ctx, instr)
 
+class CommandCompareBanks(Command):
+    def execute(self, vm, ctx, instr):
+        ctx.compare8(ctx.getBank(instr.args[0]), ctx.getBank(instr.args[1]))
+
+class CommandCompareBankToByte(Command):
+    def execute(self, vm, ctx, instr):
+        ctx.compare8(ctx.getBank(instr.args[0]), instr.args[1])
+
+class CommandCompareBankToFarByte(Command):
+    def execute(self, vm, ctx, instr):
+        ctx.compare8(ctx.getBank(instr.args[0]), mem.readU8(instr.args[1]))
+
+class CommandCompareFarByteToBank(Command):
+    def execute(self, vm, ctx, instr):
+        ctx.compare8(mem.readU8(instr.args[0]), ctx.getBank(instr.args[1]))
+
+class CommandCompareFarByteToByte(Command):
+    def execute(self, vm, ctx, instr):
+        ctx.compare8(mem.readU8(instr.args[0]), instr.args[1])
+
+class CommandCompareFarBytes(Command):
+    def execute(self, vm, ctx, instr):
+        ctx.compare8(mem.readU8(instr.args[0]), mem.readU8(instr.args[1]))
+
+class CommandCompare(Command):
+    def execute(self, vm, ctx, instr):
+        ctx.compare(ctx.getVar(instr.args[0]), instr.args[1])
+
+class CommandCompareVars(Command):
+    def execute(self, vm, ctx, instr):
+        ctx.compare(ctx.getVar(instr.args[0]), ctx.getVar(instr.args[1]))
+
 class CommandBufferString(Command):
     def format(self, instr):
         return "bufferstring %d \"%s\"" % (instr.args[0], self.unrolledString(instr.args[1]))
@@ -284,6 +316,13 @@ class VM:
             else:
                 print("Context error: bank %d does not exist" % idx)
 
+        def compare(self, a, b):
+            self.cmp1 = a
+            self.cmp2 = b
+
+        def compare8(self, a, b):
+            self.compare(np.uint8(a), np.uint8(b))
+
 cmds = [
     Command(0x00, "nop", ""),
     Command(0x01, "nop1", ""),
@@ -312,14 +351,14 @@ cmds = [
     CommandSubVar(0x18, "subvar %#x %#x", "var word/var"),
     CommandCopyVar(0x19, "copyvar %#x %#x", "var var"),
     CommandCopyVarIfNotZero(0x1A, "copyvarifnotzero %#x %#x", "var word/var"),
-    Command(0x1B, "comparebanks %d %d", "bank bank"),
-    Command(0x1C, "comparebanktobyte %d %#x", "bank byte"),
-    Command(0x1D, "comparebanktofarbyte %d 0x%08x", "bank ptr"),
-    Command(0x1E, "comparefarbytetobank 0x%08x %d", "ptr bank"),
-    Command(0x1F, "comparefarbytetobyte 0x%08x %#x", "ptr byte"),
-    Command(0x20, "comparefarbytes 0x%08x 0x%08x", "ptr ptr"),
-    Command(0x21, "compare %#x %#x", "var word"),
-    Command(0x22, "comparevars %#x %#x", "var var"),
+    CommandCompareBanks(0x1B, "comparebanks %d %d", "bank bank"),
+    CommandCompareBankToByte(0x1C, "comparebanktobyte %d %#x", "bank byte"),
+    CommandCompareBankToFarByte(0x1D, "comparebanktofarbyte %d 0x%08x", "bank ptr"),
+    CommandCompareFarByteToBank(0x1E, "comparefarbytetobank 0x%08x %d", "ptr bank"),
+    CommandCompareFarByteToByte(0x1F, "comparefarbytetobyte 0x%08x %#x", "ptr byte"),
+    CommandCompareFarBytes(0x20, "comparefarbytes 0x%08x 0x%08x", "ptr ptr"),
+    CommandCompare(0x21, "compare %#x %#x", "var word"),
+    CommandCompareVars(0x22, "comparevars %#x %#x", "var var"),
     Command(0x23, "callasm 0x%08x", "ptr"),
     Command(0x24, "cmd24 0x%08x", "ptr"),
     Command(0x25, "special %#x", "word"),
