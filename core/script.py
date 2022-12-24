@@ -171,6 +171,23 @@ class CommandCheckAttack(Command):
     def format(self, instr):
         return "checkattack \"%s\"" % db.moves[instr.args[0]].name
 
+class CommandSetFlag(Command):
+    def execute(self, vm, ctx, instr):
+        ctx.setFlag(instr.args[0], 1)
+
+class CommandClearFlag(Command):
+    def execute(self, vm, ctx, instr):
+        ctx.setFlag(instr.args[0], 0)
+
+class CommandCheckFlag(Command):
+    def execute(self, vm, ctx, instr):
+        ctx.compare(ctx.getFlag(instr.args[0]), 1)
+
+class CommandResetVars(Command):
+    def execute(self, vm, ctx, instr):
+        for v in range(0x8000, 0x8003):
+            ctx.setVar(v, 0)
+
 class Instruction:
     def __init__(self, addr):
         self.addr = addr
@@ -365,12 +382,12 @@ cmds = [
     Command(0x26, "special2 %#x %#x", "var word"),
     Command(0x27, "waitstate", ""),
     Command(0x28, "pause %#x", "word"),
-    Command(0x29, "setflag %#x", "flag/var"),
-    Command(0x2A, "clearflag %#x", "flag/var"),
-    Command(0x2B, "checkflag %#x", "flag/var"),
+    CommandSetFlag(0x29, "setflag %#x", "flag/var"),
+    CommandClearFlag(0x2A, "clearflag %#x", "flag/var"),
+    CommandCheckFlag(0x2B, "checkflag %#x", "flag/var"),
     Command(0x2C, "cmd2c", ""),
     Command(0x2D, "checkdailyflags", ""),
-    Command(0x2E, "resetvars", ""),
+    CommandResetVars(0x2E, "resetvars", ""),
     Command(0x2F, "sound %#x", "word"),
     Command(0x30, "checksound", ""),
     Command(0x31, "fanfare %#x", "word/var"),
