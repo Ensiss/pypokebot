@@ -256,6 +256,7 @@ class VM:
     BUFF_COUNT = 0x03
     VAR_OFFSET = 0x4000
     TEMP_OFFSET = 0x8000
+    LASTRESULT = 0x800D
 
     def isFlag(x):
         return x < VM.FLAG_COUNT
