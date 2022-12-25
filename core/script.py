@@ -206,6 +206,13 @@ class Script:
     def __init__(self, addr):
         self.addr = addr
 
+    def get(addr):
+        return Script(addr)
+
+    def getStd(n):
+        addr = mem.readU32(0x08160450 + n * 4)
+        return Script(addr)
+
     def print(self):
         def alreadyVisited(addr):
             for addr_min, addr_max in ranges:
