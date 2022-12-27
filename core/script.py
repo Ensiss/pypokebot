@@ -1,6 +1,7 @@
 import memory; mem = memory.Memory
 import database; db = database.Database
 import struct
+import enum
 
 class Command:
     arg_fmts = {
@@ -203,6 +204,14 @@ class Instruction:
         return self.cmd.format(self)
 
 class Script:
+    class Type(enum.IntEnum):
+        PERSON = 0
+        SIGN = enum.auto()
+        SCRIPT = enum.auto()
+        MAPSCRIPT = enum.auto()
+        STD = enum.auto()
+        NONE = enum.auto()
+
     def __init__(self, addr):
         self.addr = addr
 
@@ -212,6 +221,20 @@ class Script:
     def getStd(n):
         addr = mem.readU32(0x08160450 + n * 4)
         return Script(addr)
+
+    def getScript(bank_id, map_id, idx, stype):
+        if stype == Script.Type.STD and idx < 10:
+            return Script.getStd(idx)
+        m = db.banks[bank_id][map_id]
+        if stype == Script.Type.PERSON and idx < len(m.persons):
+            return Script.get(m.persons[idx].script_ptr)
+        elif stype == Script.Type.SIGN and idx < len(m.signs):
+            return Script.get(m.signs[idx].script_ptr)
+        elif stype == Script.Type.SCRIPT and idx < len(m.scripts):
+            return Script.get(m.scripts[idx].script_ptr)
+        elif stype == Script.Type.MAPSCRIPT and idx < len(m.map_scripts):
+            return Script.get(m.map_scripts[idx].script_ptr)
+        return None
 
     def print(self):
         def alreadyVisited(addr):
