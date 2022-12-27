@@ -222,9 +222,11 @@ class Script:
         addr = mem.readU32(0x08160450 + n * 4)
         return Script(addr)
 
-    def getScript(bank_id, map_id, idx, stype):
+    def getScript(idx, stype, bank_id=0, map_id=0):
         if stype == Script.Type.STD and idx < 10:
             return Script.getStd(idx)
+        if bank_id >= len(db.banks) or map_id >= len(db.banks[bank_id]):
+            return None
         m = db.banks[bank_id][map_id]
         if stype == Script.Type.PERSON and idx < len(m.persons):
             return Script.get(m.persons[idx].script_ptr)
