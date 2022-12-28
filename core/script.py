@@ -225,6 +225,9 @@ class Script:
     def getScript(idx, stype, bank_id=0, map_id=0):
         if stype == Script.Type.STD and idx < 10:
             return Script.getStd(idx)
+        if stype < Script.Type.STD and bank_id == 0 and map_id == 0:
+            bank_id = db.player.bank_id
+            map_id = db.player.map_id
         if bank_id >= len(db.banks) or map_id >= len(db.banks[bank_id]):
             return None
         m = db.banks[bank_id][map_id]
