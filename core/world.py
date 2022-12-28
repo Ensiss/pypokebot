@@ -210,7 +210,7 @@ class MapScript(utils.RawStruct):
             self.value = 0
 
 class SignEvent(utils.RawStruct):
-    fmt = "2H2BI"
+    fmt = "4HI"
     def __init__(self, addr):
         (self.x,
          self.y,
