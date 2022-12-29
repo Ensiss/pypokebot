@@ -229,6 +229,8 @@ class Script:
             bank_id = db.player.bank_id
             map_id = db.player.map_id
         if bank_id >= len(db.banks) or map_id >= len(db.banks[bank_id]):
+            print("getScript error: map [%d, %d] not found" %
+                  (bank_id, map_id))
             return None
         m = db.banks[bank_id][map_id]
         if stype == Script.Type.PERSON and idx < len(m.persons):
@@ -239,6 +241,8 @@ class Script:
             return Script.get(m.scripts[idx].script_ptr)
         elif stype == Script.Type.MAPSCRIPT and idx < len(m.map_scripts):
             return Script.get(m.map_scripts[idx].script_ptr)
+        print("getScript error: cannot find script %d of type %d in map [%d, %d]" %
+              (idx, stype, bank_id, map_id))
         return None
 
     def print(self):
