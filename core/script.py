@@ -45,14 +45,31 @@ class Command:
     def __len__(self):
         return self.size
 
-    def format(self, instr):
-        return self.str_fmt % instr.args
-
     def unrolledString(self, addr):
+        """
+        Convenience function to read a pokestring and unroll it in one line.
+        """
         return mem.readPokeStr(addr).replace("\n", " ")
 
+    def format(self, instr):
+        """
+        Called to pretty print a script. Override to define specific behavior.
+        """
+        return self.str_fmt % instr.args
+
     def execute(self, vm, ctx, instr):
+        """
+        Called to simulate script execution and update the context.
+        Should ideallly update the current context exactly as the in-game script.
+        """
         return
+
+    def explore(self, vm, ctx, instr):
+        """
+        Called to explore all script branches and track inputs and outputs.
+        This should be different from execute only for branching instructions.
+        """
+        return self.execute(vm, ctx, instr)
 
 class CommandCall(Command):
     def execute(self, vm, ctx, instr):
