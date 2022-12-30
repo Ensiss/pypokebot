@@ -323,6 +323,31 @@ class VM:
     TEMP_OFFSET = 0x8000
     LASTRESULT = 0x800D
 
+    class Storage():
+        def __init__(self, fmt, val):
+            self.fmt = fmt
+            self.val = val
+        def __int__(self):
+            return self.val
+        def __str__(self):
+            return self.fmt % self.val
+
+    class Flag(Storage):
+        def __init__(self, val):
+            super().__init__("flag(0x%x)", val)
+    class Var(Storage):
+        def __init__(self, val):
+            super().__init__("var(0x%x)", val)
+    class Temp(Storage):
+        def __init__(self, val):
+            super().__init__("temp(0x%x)", val)
+    class Bank(Storage):
+        def __init__(self, val):
+            super().__init__("bank(%d)", val)
+    class Buffer(Storage):
+        def __init__(self, val):
+            super().__init__("buffer(%d)", val)
+
     def isFlag(x):
         return x < VM.FLAG_COUNT
     def isBank(x):
@@ -343,6 +368,8 @@ class VM:
                 self.cmp1 = self.cmp2 = 0
                 self.pc = 0
                 self.stack = []
+                self.inputs = []
+                self.outputs = []
             else:
                 self.flags = other.flags.copy()
                 self.variables = other.variables.copy()
@@ -352,26 +379,32 @@ class VM:
                 self.cmp2 = other.cmp2
                 self.pc = other.pc
                 self.stack = other.stack.copy()
+                self.inputs = other.inputs.copy()
+                self.outputs = other.outputs.copy()
 
         def copy(self):
             return VM.Context(self)
 
         def getFlag(self, idx):
             if VM.isFlag(idx):
+                ctx.inputs.append(VM.Flag(idx))
                 return bool(self.flags[idx >> 3] & (1 << (idx % 8)))
             print("Context error: flag %d does not exist" % idx)
             return 0
 
         def getVar(self, idx):
             if VM.isVar(idx):
+                ctx.inputs.append(VM.Var(idx))
                 return self.variables[idx - VM.VAR_OFFSET]
             elif VM.isTemp(idx):
+                ctx.inputs.append(VM.Temp(idx))
                 return self.temps[idx - VM.TEMP_OFFSET]
             print("Context error: variable %d does not exist" % idx)
             return 0
 
         def getBank(self, idx):
             if VM.isBank(idx):
+                ctx.inputs.append(VM.Bank(idx))
                 return self.banks[idx]
             print("Context error: bank %d does not exist" % idx)
             return 0
@@ -380,6 +413,7 @@ class VM:
             if not VM.isFlag(idx):
                 print("Context error: flag %d does not exist" % idx)
                 return
+            ctx.outputs.append(VM.Flag(idx))
             if val:
                 self.flags[idx >> 3] |= (1 << (idx % 8))
             else:
@@ -387,14 +421,17 @@ class VM:
 
         def setVar(self, idx, val):
             if VM.isVar(idx):
+                ctx.outputs.append(VM.Var(idx))
                 self.variables[idx - VM.VAR_OFFSET] = val
             elif VM.isTemp(idx):
+                ctx.outputs.append(VM.Temp(idx))
                 self.temps[idx - VM.TEMP_OFFSET] = val
             else:
                 print("Context error: variable %d does not exist" % idx)
 
         def setBank(self, idx, val):
             if VM.isBank(idx):
+                ctx.outputs.append(VM.Bank(idx))
                 self.banks[idx] = val
             else:
                 print("Context error: bank %d does not exist" % idx)
