@@ -215,14 +215,14 @@ class Script:
     def __init__(self, addr):
         self.addr = addr
 
-    def get(addr):
+    def getAt(addr):
         return Script(addr)
 
     def getStd(n):
         addr = mem.readU32(0x08160450 + n * 4)
         return Script(addr)
 
-    def getScript(idx, stype, bank_id=0, map_id=0):
+    def getGeneric(idx, stype, bank_id=0, map_id=0):
         if stype == Script.Type.STD and idx < 10:
             return Script.getStd(idx)
         if stype < Script.Type.STD and bank_id == 0 and map_id == 0:
@@ -234,16 +234,25 @@ class Script:
             return None
         m = db.banks[bank_id][map_id]
         if stype == Script.Type.PERSON and idx < len(m.persons):
-            return Script.get(m.persons[idx].script_ptr)
+            return Script.getAt(m.persons[idx].script_ptr)
         elif stype == Script.Type.SIGN and idx < len(m.signs):
-            return Script.get(m.signs[idx].script_ptr)
+            return Script.getAt(m.signs[idx].script_ptr)
         elif stype == Script.Type.SCRIPT and idx < len(m.scripts):
-            return Script.get(m.scripts[idx].script_ptr)
+            return Script.getAt(m.scripts[idx].script_ptr)
         elif stype == Script.Type.MAPSCRIPT and idx < len(m.map_scripts):
-            return Script.get(m.map_scripts[idx].script_ptr)
+            return Script.getAt(m.map_scripts[idx].script_ptr)
         print("getScript error: cannot find script %d of type %d in map [%d, %d]" %
               (idx, stype, bank_id, map_id))
         return None
+
+    def getPerson(idx, bank_id=0, map_id=0):
+        return Script.getGeneric(idx, Script.Type.PERSON, bank_id, map_id)
+    def getSign(idx, bank_id=0, map_id=0):
+        return Script.getGeneric(idx, Script.Type.SIGN, bank_id, map_id)
+    def getScript(idx, bank_id=0, map_id=0):
+        return Script.getGeneric(idx, Script.Type.SCRIPT, bank_id, map_id)
+    def getMapScript(idx, bank_id=0, map_id=0):
+        return Script.getGeneric(idx, Script.Type.MAPSCRIPT, bank_id, map_id)
 
     def print(self):
         def alreadyVisited(addr):
