@@ -138,7 +138,7 @@ class CommandCopyVar(Command):
 
 class CommandCopyVarIfNotZero(Command):
     def execute(self, vm, ctx, instr):
-        if VM.isVar(instr.args[1]):
+        if Script.isVar(instr.args[1]):
             CommandCopyVar.execute(self, vm, ctx, instr)
         else:
             CommandSetVar.execute(self, vm, ctx, instr)
@@ -221,6 +221,15 @@ class Instruction:
         return self.cmd.format(self)
 
 class Script:
+    FLAG_COUNT = 0x900
+    VAR_COUNT = 0x100
+    TEMP_COUNT = 0x1F
+    BANK_COUNT = 0x04
+    BUFF_COUNT = 0x03
+    VAR_OFFSET = 0x4000
+    TEMP_OFFSET = 0x8000
+    LASTRESULT = 0x800D
+
     class Type(enum.IntEnum):
         PERSON = 0
         SIGN = enum.auto()
@@ -228,6 +237,128 @@ class Script:
         MAPSCRIPT = enum.auto()
         STD = enum.auto()
         NONE = enum.auto()
+
+    class Storage:
+        def __init__(self, fmt, val):
+            self.fmt = fmt
+            self.val = val
+        def __int__(self):
+            return self.val
+        def __eq__(self, other):
+            return self.val == other.val and type(self) == type(other)
+        def __str__(self):
+            return self.fmt % self.val
+
+    class Flag(Storage):
+        def __init__(self, val):
+            super().__init__("flag(0x%x)", val)
+    class Var(Storage):
+        def __init__(self, val):
+            super().__init__("var(0x%x)", val)
+    class Temp(Storage):
+        def __init__(self, val):
+            super().__init__("temp(0x%x)", val)
+    class Bank(Storage):
+        def __init__(self, val):
+            super().__init__("bank(%d)", val)
+    class Buffer(Storage):
+        def __init__(self, val):
+            super().__init__("buffer(%d)", val)
+
+    def isFlag(x):
+        return x < Script.FLAG_COUNT
+    def isBank(x):
+        return x < Script.BANK_COUNT
+    def isVar(x):
+        return Script.VAR_OFFSET <= x < Script.VAR_OFFSET + Script.VAR_COUNT
+    def isTemp(x):
+        return Script.TEMP_OFFSET <= x < Script.TEMP_OFFSET + Script.TEMP_COUNT
+
+    class Context:
+        def __init__(self, other=None):
+            if other is None:
+                ptr = mem.readU32(0x03005008)
+                self.flags = np.frombuffer(mem.bufferFromAddr(ptr + 0xEE0)[:Script.FLAG_COUNT >> 3], dtype=np.uint8).copy()
+                self.variables = np.frombuffer(mem.bufferFromAddr(ptr + 0x1000)[:Script.VAR_COUNT], dtype=np.uint16).copy()
+                self.temps = np.zeros(Script.TEMP_COUNT, dtype=np.uint16)
+                self.banks = np.zeros(Script.BANK_COUNT, dtype=np.uint32)
+                self.cmp1 = self.cmp2 = 0
+                self.pc = 0
+                self.stack = []
+                self.inputs = []
+                self.outputs = []
+            else:
+                self.flags = other.flags.copy()
+                self.variables = other.variables.copy()
+                self.temps = other.temps.copy()
+                self.banks = other.banks.copy()
+                self.cmp1 = other.cmp1
+                self.cmp2 = other.cmp2
+                self.pc = other.pc
+                self.stack = other.stack.copy()
+                self.inputs = other.inputs.copy()
+                self.outputs = other.outputs.copy()
+
+        def copy(self):
+            return Script.Context(self)
+
+        def getFlag(self, idx):
+            if Script.isFlag(idx):
+                ctx.inputs.append(Script.Flag(idx))
+                return bool(self.flags[idx >> 3] & (1 << (idx % 8)))
+            print("Context error: flag %d does not exist" % idx)
+            return 0
+
+        def getVar(self, idx):
+            if Script.isVar(idx):
+                ctx.inputs.append(Script.Var(idx))
+                return self.variables[idx - Script.VAR_OFFSET]
+            elif Script.isTemp(idx):
+                ctx.inputs.append(Script.Temp(idx))
+                return self.temps[idx - Script.TEMP_OFFSET]
+            print("Context error: variable %d does not exist" % idx)
+            return 0
+
+        def getBank(self, idx):
+            if Script.isBank(idx):
+                ctx.inputs.append(Script.Bank(idx))
+                return self.banks[idx]
+            print("Context error: bank %d does not exist" % idx)
+            return 0
+
+        def setFlag(self, idx, val):
+            if not Script.isFlag(idx):
+                print("Context error: flag %d does not exist" % idx)
+                return
+            ctx.outputs.append(Script.Flag(idx))
+            if val:
+                self.flags[idx >> 3] |= (1 << (idx % 8))
+            else:
+                self.flags[idx >> 3] &= ~(1 << (idx % 8))
+
+        def setVar(self, idx, val):
+            if Script.isVar(idx):
+                ctx.outputs.append(Script.Var(idx))
+                self.variables[idx - Script.VAR_OFFSET] = val
+            elif Script.isTemp(idx):
+                ctx.outputs.append(Script.Temp(idx))
+                self.temps[idx - Script.TEMP_OFFSET] = val
+            else:
+                print("Context error: variable %d does not exist" % idx)
+
+        def setBank(self, idx, val):
+            if Script.isBank(idx):
+                ctx.outputs.append(Script.Bank(idx))
+                self.banks[idx] = val
+            else:
+                print("Context error: bank %d does not exist" % idx)
+
+        def compare(self, a, b):
+            self.cmp1 = a
+            self.cmp2 = b
+
+        def compare8(self, a, b):
+            self.compare(np.uint8(a), np.uint8(b))
 
     def __init__(self, addr):
         self.addr = addr
@@ -312,138 +443,6 @@ class Script:
             if addr != self.addr:
                 print("")
             subPrint(addr)
-
-class VM:
-    FLAG_COUNT = 0x900
-    VAR_COUNT = 0x100
-    TEMP_COUNT = 0x1F
-    BANK_COUNT = 0x04
-    BUFF_COUNT = 0x03
-    VAR_OFFSET = 0x4000
-    TEMP_OFFSET = 0x8000
-    LASTRESULT = 0x800D
-
-    class Storage():
-        def __init__(self, fmt, val):
-            self.fmt = fmt
-            self.val = val
-        def __int__(self):
-            return self.val
-        def __eq__(self, other):
-            return self.val == other.val and type(self) == type(other)
-        def __str__(self):
-            return self.fmt % self.val
-
-    class Flag(Storage):
-        def __init__(self, val):
-            super().__init__("flag(0x%x)", val)
-    class Var(Storage):
-        def __init__(self, val):
-            super().__init__("var(0x%x)", val)
-    class Temp(Storage):
-        def __init__(self, val):
-            super().__init__("temp(0x%x)", val)
-    class Bank(Storage):
-        def __init__(self, val):
-            super().__init__("bank(%d)", val)
-    class Buffer(Storage):
-        def __init__(self, val):
-            super().__init__("buffer(%d)", val)
-
-    def isFlag(x):
-        return x < VM.FLAG_COUNT
-    def isBank(x):
-        return x < VM.BANK_COUNT
-    def isVar(x):
-        return VM.VAR_OFFSET <= x < VM.VAR_OFFSET + VM.VAR_COUNT
-    def isTemp(x):
-        return VM.TEMP_OFFSET <= x < VM.TEMP_OFFSET + VM.TEMP_COUNT
-
-    class Context:
-        def __init__(self, other=None):
-            if other is None:
-                ptr = mem.readU32(0x03005008)
-                self.flags = np.frombuffer(mem.bufferFromAddr(ptr + 0xEE0)[:VM.FLAG_COUNT >> 3], dtype=np.uint8).copy()
-                self.variables = np.frombuffer(mem.bufferFromAddr(ptr + 0x1000)[:VM.VAR_COUNT], dtype=np.uint16).copy()
-                self.temps = np.zeros(VM.TEMP_COUNT, dtype=np.uint16)
-                self.banks = np.zeros(VM.BANK_COUNT, dtype=np.uint32)
-                self.cmp1 = self.cmp2 = 0
-                self.pc = 0
-                self.stack = []
-                self.inputs = []
-                self.outputs = []
-            else:
-                self.flags = other.flags.copy()
-                self.variables = other.variables.copy()
-                self.temps = other.temps.copy()
-                self.banks = other.banks.copy()
-                self.cmp1 = other.cmp1
-                self.cmp2 = other.cmp2
-                self.pc = other.pc
-                self.stack = other.stack.copy()
-                self.inputs = other.inputs.copy()
-                self.outputs = other.outputs.copy()
-
-        def copy(self):
-            return VM.Context(self)
-
-        def getFlag(self, idx):
-            if VM.isFlag(idx):
-                ctx.inputs.append(VM.Flag(idx))
-                return bool(self.flags[idx >> 3] & (1 << (idx % 8)))
-            print("Context error: flag %d does not exist" % idx)
-            return 0
-
-        def getVar(self, idx):
-            if VM.isVar(idx):
-                ctx.inputs.append(VM.Var(idx))
-                return self.variables[idx - VM.VAR_OFFSET]
-            elif VM.isTemp(idx):
-                ctx.inputs.append(VM.Temp(idx))
-                return self.temps[idx - VM.TEMP_OFFSET]
-            print("Context error: variable %d does not exist" % idx)
-            return 0
-
-        def getBank(self, idx):
-            if VM.isBank(idx):
-                ctx.inputs.append(VM.Bank(idx))
-                return self.banks[idx]
-            print("Context error: bank %d does not exist" % idx)
-            return 0
-
-        def setFlag(self, idx, val):
-            if not VM.isFlag(idx):
-                print("Context error: flag %d does not exist" % idx)
-                return
-            ctx.outputs.append(VM.Flag(idx))
-            if val:
-                self.flags[idx >> 3] |= (1 << (idx % 8))
-            else:
-                self.flags[idx >> 3] &= ~(1 << (idx % 8))
-
-        def setVar(self, idx, val):
-            if VM.isVar(idx):
-                ctx.outputs.append(VM.Var(idx))
-                self.variables[idx - VM.VAR_OFFSET] = val
-            elif VM.isTemp(idx):
-                ctx.outputs.append(VM.Temp(idx))
-                self.temps[idx - VM.TEMP_OFFSET] = val
-            else:
-                print("Context error: variable %d does not exist" % idx)
-
-        def setBank(self, idx, val):
-            if VM.isBank(idx):
-                ctx.outputs.append(VM.Bank(idx))
-                self.banks[idx] = val
-            else:
-                print("Context error: bank %d does not exist" % idx)
-
-        def compare(self, a, b):
-            self.cmp1 = a
-            self.cmp2 = b
-
-        def compare8(self, a, b):
-            self.compare(np.uint8(a), np.uint8(b))
 
 cmds = [
     Command(0x00, "nop", ""),
