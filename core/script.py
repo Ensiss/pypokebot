@@ -329,6 +329,8 @@ class VM:
             self.val = val
         def __int__(self):
             return self.val
+        def __eq__(self, other):
+            return self.val == other.val and type(self) == type(other)
         def __str__(self):
             return self.fmt % self.val
 
