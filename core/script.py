@@ -248,6 +248,8 @@ class Script:
             return self.val == other.val and type(self) == type(other)
         def __str__(self):
             return self.fmt % self.val
+        def __hash__(self):
+            return hash(str(self))
 
     class Flag(Storage):
         def __init__(self, val):
@@ -285,8 +287,8 @@ class Script:
                 self.cmp1 = self.cmp2 = 0
                 self.pc = 0
                 self.stack = []
-                self.inputs = []
-                self.outputs = []
+                self.inputs = set()
+                self.outputs = set()
             else:
                 self.flags = other.flags.copy()
                 self.variables = other.variables.copy()
@@ -304,24 +306,24 @@ class Script:
 
         def getFlag(self, idx):
             if Script.isFlag(idx):
-                ctx.inputs.append(Script.Flag(idx))
+                ctx.inputs.add(Script.Flag(idx))
                 return bool(self.flags[idx >> 3] & (1 << (idx % 8)))
             print("Context error: flag %d does not exist" % idx)
             return 0
 
         def getVar(self, idx):
             if Script.isVar(idx):
-                ctx.inputs.append(Script.Var(idx))
+                ctx.inputs.add(Script.Var(idx))
                 return self.variables[idx - Script.VAR_OFFSET]
             elif Script.isTemp(idx):
-                ctx.inputs.append(Script.Temp(idx))
+                ctx.inputs.add(Script.Temp(idx))
                 return self.temps[idx - Script.TEMP_OFFSET]
             print("Context error: variable %d does not exist" % idx)
             return 0
 
         def getBank(self, idx):
             if Script.isBank(idx):
-                ctx.inputs.append(Script.Bank(idx))
+                ctx.inputs.add(Script.Bank(idx))
                 return self.banks[idx]
             print("Context error: bank %d does not exist" % idx)
             return 0
@@ -330,7 +332,7 @@ class Script:
             if not Script.isFlag(idx):
                 print("Context error: flag %d does not exist" % idx)
                 return
-            ctx.outputs.append(Script.Flag(idx))
+            ctx.outputs.add(Script.Flag(idx))
             if val:
                 self.flags[idx >> 3] |= (1 << (idx % 8))
             else:
@@ -338,17 +340,17 @@ class Script:
 
         def setVar(self, idx, val):
             if Script.isVar(idx):
-                ctx.outputs.append(Script.Var(idx))
+                ctx.outputs.add(Script.Var(idx))
                 self.variables[idx - Script.VAR_OFFSET] = val
             elif Script.isTemp(idx):
-                ctx.outputs.append(Script.Temp(idx))
+                ctx.outputs.add(Script.Temp(idx))
                 self.temps[idx - Script.TEMP_OFFSET] = val
             else:
                 print("Context error: variable %d does not exist" % idx)
 
         def setBank(self, idx, val):
             if Script.isBank(idx):
-                ctx.outputs.append(Script.Bank(idx))
+                ctx.outputs.add(Script.Bank(idx))
                 self.banks[idx] = val
             else:
                 print("Context error: bank %d does not exist" % idx)
