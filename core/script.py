@@ -109,7 +109,7 @@ class CommandIf1(CommandIf):
         if Command.cmd_op[instr.args[0]](ctx.cmp1, ctx.cmp2):
             ctx.pc = instr.args[1]
         else:
-            super().execute(ctx, instr)
+            Command.execute(self, ctx, instr)
 
 class CommandIf2(CommandIf):
     def execute(self, ctx, instr):
@@ -120,49 +120,49 @@ class CommandIf2(CommandIf):
             ctx.stack.append(instr.next_addr)
             ctx.pc = instr.args[1]
         else:
-            super().execute(ctx, instr)
+            Command.execute(self, ctx, instr)
 
 class CommandLoadPointer(Command):
     def format(self, instr):
         return "loadpointer %d \"%s\"" % (instr.args[0], self.unrolledString(instr.args[1]))
     def execute(self, ctx, instr):
         ctx.setBank(instr.args[0], instr.args[1])
-        super().execute(ctx, instr)
+        Command.execute(self, ctx, instr)
 
 class CommandSetByte2(Command):
     def execute(self, ctx, instr):
         ctx.setBank(instr.args[0], instr.args[1])
-        super().execute(ctx, instr)
+        Command.execute(self, ctx, instr)
 
 class CommandLoadByteFromPtr(Command):
     def execute(self, ctx, instr):
         ctx.setBank(instr.args[0], mem.readU8(instr.args[1]))
-        super().execute(ctx, instr)
+        Command.execute(self, ctx, instr)
 
 class CommandCopyScriptBanks(Command):
     def execute(self, ctx, instr):
         ctx.setBank(instr.args[0], ctx.getBank(instr.args[1]))
-        super().execute(ctx, instr)
+        Command.execute(self, ctx, instr)
 
 class CommandSetVar(Command):
     def execute(self, ctx, instr):
         ctx.setVar(instr.args[0], instr.args[1])
-        super().execute(ctx, instr)
+        Command.execute(self, ctx, instr)
 
 class CommandAddVar(Command):
     def execute(self, ctx, instr):
         ctx.setVar(instr.args[0], ctx.getVar(instr.args[0]) + instr.args[1])
-        super().execute(ctx, instr)
+        Command.execute(self, ctx, instr)
 
 class CommandSubVar(Command):
     def execute(self, ctx, instr):
         ctx.setVar(instr.args[0], ctx.getVar(instr.args[0]) - instr.args[1])
-        super().execute(ctx, instr)
+        Command.execute(self, ctx, instr)
 
 class CommandCopyVar(Command):
     def execute(self, ctx, instr):
         ctx.setVar(instr.args[0], ctx.getVar(instr.args[1]))
-        super().execute(ctx, instr)
+        Command.execute(self, ctx, instr)
 
 class CommandCopyVarIfNotZero(Command):
     def execute(self, ctx, instr):
@@ -174,42 +174,42 @@ class CommandCopyVarIfNotZero(Command):
 class CommandCompareBanks(Command):
     def execute(self, ctx, instr):
         ctx.compare8(ctx.getBank(instr.args[0]), ctx.getBank(instr.args[1]))
-        super().execute(ctx, instr)
+        Command.execute(self, ctx, instr)
 
 class CommandCompareBankToByte(Command):
     def execute(self, ctx, instr):
         ctx.compare8(ctx.getBank(instr.args[0]), instr.args[1])
-        super().execute(ctx, instr)
+        Command.execute(self, ctx, instr)
 
 class CommandCompareBankToFarByte(Command):
     def execute(self, ctx, instr):
         ctx.compare8(ctx.getBank(instr.args[0]), mem.readU8(instr.args[1]))
-        super().execute(ctx, instr)
+        Command.execute(self, ctx, instr)
 
 class CommandCompareFarByteToBank(Command):
     def execute(self, ctx, instr):
         ctx.compare8(mem.readU8(instr.args[0]), ctx.getBank(instr.args[1]))
-        super().execute(ctx, instr)
+        Command.execute(self, ctx, instr)
 
 class CommandCompareFarByteToByte(Command):
     def execute(self, ctx, instr):
         ctx.compare8(mem.readU8(instr.args[0]), instr.args[1])
-        super().execute(ctx, instr)
+        Command.execute(self, ctx, instr)
 
 class CommandCompareFarBytes(Command):
     def execute(self, ctx, instr):
         ctx.compare8(mem.readU8(instr.args[0]), mem.readU8(instr.args[1]))
-        super().execute(ctx, instr)
+        Command.execute(self, ctx, instr)
 
 class CommandCompare(Command):
     def execute(self, ctx, instr):
         ctx.compare(ctx.getVar(instr.args[0]), instr.args[1])
-        super().execute(ctx, instr)
+        Command.execute(self, ctx, instr)
 
 class CommandCompareVars(Command):
     def execute(self, ctx, instr):
         ctx.compare(ctx.getVar(instr.args[0]), ctx.getVar(instr.args[1]))
-        super().execute(ctx, instr)
+        Command.execute(self, ctx, instr)
 
 class CommandBufferString(Command):
     def format(self, instr):
@@ -228,23 +228,23 @@ class CommandCheckAttack(Command):
 class CommandSetFlag(Command):
     def execute(self, ctx, instr):
         ctx.setFlag(instr.args[0], 1)
-        super().execute(ctx, instr)
+        Command.execute(self, ctx, instr)
 
 class CommandClearFlag(Command):
     def execute(self, ctx, instr):
         ctx.setFlag(instr.args[0], 0)
-        super().execute(ctx, instr)
+        Command.execute(self, ctx, instr)
 
 class CommandCheckFlag(Command):
     def execute(self, ctx, instr):
         ctx.compare(ctx.getFlag(instr.args[0]), 1)
-        super().execute(ctx, instr)
+        Command.execute(self, ctx, instr)
 
 class CommandResetVars(Command):
     def execute(self, ctx, instr):
         for v in range(0x8000, 0x8003):
             ctx.setVar(v, 0)
-        super().execute(ctx, instr)
+        Command.execute(self, ctx, instr)
 
 class Instruction:
     def __init__(self, addr):
