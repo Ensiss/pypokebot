@@ -1,3 +1,4 @@
+import numpy as np
 import memory; mem = memory.Memory
 import database; db = database.Database
 import struct
@@ -57,27 +58,35 @@ class Command:
         """
         return self.str_fmt % instr.args
 
-    def execute(self, vm, ctx, instr):
+    def execute(self, ctx, instr):
         """
         Called to simulate script execution and update the context.
         Should ideallly update the current context exactly as the in-game script.
+        By default, only moves the context pc to the next instruction.
         """
-        return
+        ctx.pc = instr.next_addr
 
-    def explore(self, vm, ctx, instr):
+    def explore(self, open_ctxs, ctx, instr):
         """
         Called to explore all script branches and track inputs and outputs.
         This should be different from execute only for branching instructions.
         """
-        return self.execute(vm, ctx, instr)
+        return self.execute(ctx, instr)
+
+class CommandReturn(Command):
+    def execute(self, ctx, instr):
+        if len(ctx.stack) == 0:
+            print("Return error: empty stack")
+            return
+        ctx.pc = ctx.stack.pop()
 
 class CommandCall(Command):
-    def execute(self, vm, ctx, instr):
+    def execute(self, ctx, instr):
         ctx.stack.append(instr.next_addr)
         ctx.pc = instr.args[0]
 
 class CommandGoto(Command):
-    def execute(self, vm, ctx, instr):
+    def execute(self, ctx, instr):
         ctx.pc = instr.args[0]
 
 class CommandIf(Command):
@@ -86,94 +95,121 @@ class CommandIf(Command):
         cmd = "goto" if instr.opcode == 0x06 else "call"
         return  "if %s %s 0x%08x" % (op, cmd, instr.args[1])
 
+    def explore(self, open_ctxs, ctx, instr):
+        jump_ctx = ctx.copy()
+        jump_ctx.pc = instr.args[1]
+        open_ctxs.append(jump_ctx)
+        ctx.pc = instr.next_addr
+
 class CommandIf1(CommandIf):
-    def execute(self, vm, ctx, instr):
+    def execute(self, ctx, instr):
         if instr.args[0] > 5:
             print("If1 error: no operator %d" % instr.args[0])
             return
         if Command.cmd_op[instr.args[0]](ctx.cmp1, ctx.cmp2):
-            CommandGoto.execute(self, vm, ctx, instr)
+            ctx.pc = instr.args[1]
+        else:
+            super().execute(ctx, instr)
 
 class CommandIf2(CommandIf):
-    def execute(self, vm, ctx, instr):
+    def execute(self, ctx, instr):
         if instr.args[0] > 5:
             print("If2 error: no operator %d" % instr.args[0])
             return
         if Command.cmd_op[instr.args[0]](ctx.cmp1, ctx.cmp2):
-            CommandCall.execute(self, vm, ctx, instr)
+            ctx.stack.append(instr.next_addr)
+            ctx.pc = instr.args[1]
+        else:
+            super().execute(ctx, instr)
 
 class CommandLoadPointer(Command):
     def format(self, instr):
         return "loadpointer %d \"%s\"" % (instr.args[0], self.unrolledString(instr.args[1]))
-    def execute(self, vm, ctx, instr):
+    def execute(self, ctx, instr):
         ctx.setBank(instr.args[0], instr.args[1])
+        super().execute(ctx, instr)
 
 class CommandSetByte2(Command):
-    def execute(self, vm, ctx, instr):
+    def execute(self, ctx, instr):
         ctx.setBank(instr.args[0], instr.args[1])
+        super().execute(ctx, instr)
 
 class CommandLoadByteFromPtr(Command):
-    def execute(self, vm, ctx, instr):
+    def execute(self, ctx, instr):
         ctx.setBank(instr.args[0], mem.readU8(instr.args[1]))
+        super().execute(ctx, instr)
 
 class CommandCopyScriptBanks(Command):
-    def execute(self, vm, ctx, instr):
+    def execute(self, ctx, instr):
         ctx.setBank(instr.args[0], ctx.getBank(instr.args[1]))
+        super().execute(ctx, instr)
 
 class CommandSetVar(Command):
-    def execute(self, vm, ctx, instr):
+    def execute(self, ctx, instr):
         ctx.setVar(instr.args[0], instr.args[1])
+        super().execute(ctx, instr)
 
 class CommandAddVar(Command):
-    def execute(self, vm, ctx, instr):
+    def execute(self, ctx, instr):
         ctx.setVar(instr.args[0], ctx.getVar(instr.args[0]) + instr.args[1])
+        super().execute(ctx, instr)
 
 class CommandSubVar(Command):
-    def execute(self, vm, ctx, instr):
+    def execute(self, ctx, instr):
         ctx.setVar(instr.args[0], ctx.getVar(instr.args[0]) - instr.args[1])
+        super().execute(ctx, instr)
 
 class CommandCopyVar(Command):
-    def execute(self, vm, ctx, instr):
+    def execute(self, ctx, instr):
         ctx.setVar(instr.args[0], ctx.getVar(instr.args[1]))
+        super().execute(ctx, instr)
 
 class CommandCopyVarIfNotZero(Command):
-    def execute(self, vm, ctx, instr):
+    def execute(self, ctx, instr):
         if Script.isVar(instr.args[1]):
-            CommandCopyVar.execute(self, vm, ctx, instr)
+            CommandCopyVar.execute(self, ctx, instr)
         else:
-            CommandSetVar.execute(self, vm, ctx, instr)
+            CommandSetVar.execute(self, ctx, instr)
 
 class CommandCompareBanks(Command):
-    def execute(self, vm, ctx, instr):
+    def execute(self, ctx, instr):
         ctx.compare8(ctx.getBank(instr.args[0]), ctx.getBank(instr.args[1]))
+        super().execute(ctx, instr)
 
 class CommandCompareBankToByte(Command):
-    def execute(self, vm, ctx, instr):
+    def execute(self, ctx, instr):
         ctx.compare8(ctx.getBank(instr.args[0]), instr.args[1])
+        super().execute(ctx, instr)
 
 class CommandCompareBankToFarByte(Command):
-    def execute(self, vm, ctx, instr):
+    def execute(self, ctx, instr):
         ctx.compare8(ctx.getBank(instr.args[0]), mem.readU8(instr.args[1]))
+        super().execute(ctx, instr)
 
 class CommandCompareFarByteToBank(Command):
-    def execute(self, vm, ctx, instr):
+    def execute(self, ctx, instr):
         ctx.compare8(mem.readU8(instr.args[0]), ctx.getBank(instr.args[1]))
+        super().execute(ctx, instr)
 
 class CommandCompareFarByteToByte(Command):
-    def execute(self, vm, ctx, instr):
+    def execute(self, ctx, instr):
         ctx.compare8(mem.readU8(instr.args[0]), instr.args[1])
+        super().execute(ctx, instr)
 
 class CommandCompareFarBytes(Command):
-    def execute(self, vm, ctx, instr):
+    def execute(self, ctx, instr):
         ctx.compare8(mem.readU8(instr.args[0]), mem.readU8(instr.args[1]))
+        super().execute(ctx, instr)
 
 class CommandCompare(Command):
-    def execute(self, vm, ctx, instr):
+    def execute(self, ctx, instr):
         ctx.compare(ctx.getVar(instr.args[0]), instr.args[1])
+        super().execute(ctx, instr)
 
 class CommandCompareVars(Command):
-    def execute(self, vm, ctx, instr):
+    def execute(self, ctx, instr):
         ctx.compare(ctx.getVar(instr.args[0]), ctx.getVar(instr.args[1]))
+        super().execute(ctx, instr)
 
 class CommandBufferString(Command):
     def format(self, instr):
@@ -190,21 +226,25 @@ class CommandCheckAttack(Command):
         return "checkattack \"%s\"" % db.moves[instr.args[0]].name
 
 class CommandSetFlag(Command):
-    def execute(self, vm, ctx, instr):
+    def execute(self, ctx, instr):
         ctx.setFlag(instr.args[0], 1)
+        super().execute(ctx, instr)
 
 class CommandClearFlag(Command):
-    def execute(self, vm, ctx, instr):
+    def execute(self, ctx, instr):
         ctx.setFlag(instr.args[0], 0)
+        super().execute(ctx, instr)
 
 class CommandCheckFlag(Command):
-    def execute(self, vm, ctx, instr):
+    def execute(self, ctx, instr):
         ctx.compare(ctx.getFlag(instr.args[0]), 1)
+        super().execute(ctx, instr)
 
 class CommandResetVars(Command):
-    def execute(self, vm, ctx, instr):
+    def execute(self, ctx, instr):
         for v in range(0x8000, 0x8003):
             ctx.setVar(v, 0)
+        super().execute(ctx, instr)
 
 class Instruction:
     def __init__(self, addr):
@@ -277,7 +317,7 @@ class Script:
         return Script.TEMP_OFFSET <= x < Script.TEMP_OFFSET + Script.TEMP_COUNT
 
     class Context:
-        def __init__(self, other=None):
+        def __init__(self, other=None, addr=0):
             if other is None:
                 ptr = mem.readU32(0x03005008)
                 self.flags = np.frombuffer(mem.bufferFromAddr(ptr + 0xEE0)[:Script.FLAG_COUNT >> 3], dtype=np.uint8).copy()
@@ -285,7 +325,7 @@ class Script:
                 self.temps = np.zeros(Script.TEMP_COUNT, dtype=np.uint16)
                 self.banks = np.zeros(Script.BANK_COUNT, dtype=np.uint32)
                 self.cmp1 = self.cmp2 = 0
-                self.pc = 0
+                self.pc = addr
                 self.stack = []
                 self.inputs = set()
                 self.outputs = set()
@@ -306,24 +346,24 @@ class Script:
 
         def getFlag(self, idx):
             if Script.isFlag(idx):
-                ctx.inputs.add(Script.Flag(idx))
+                self.inputs.add(Script.Flag(idx))
                 return bool(self.flags[idx >> 3] & (1 << (idx % 8)))
             print("Context error: flag %d does not exist" % idx)
             return 0
 
         def getVar(self, idx):
             if Script.isVar(idx):
-                ctx.inputs.add(Script.Var(idx))
+                self.inputs.add(Script.Var(idx))
                 return self.variables[idx - Script.VAR_OFFSET]
             elif Script.isTemp(idx):
-                ctx.inputs.add(Script.Temp(idx))
+                self.inputs.add(Script.Temp(idx))
                 return self.temps[idx - Script.TEMP_OFFSET]
             print("Context error: variable %d does not exist" % idx)
             return 0
 
         def getBank(self, idx):
             if Script.isBank(idx):
-                ctx.inputs.add(Script.Bank(idx))
+                self.inputs.add(Script.Bank(idx))
                 return self.banks[idx]
             print("Context error: bank %d does not exist" % idx)
             return 0
@@ -332,7 +372,7 @@ class Script:
             if not Script.isFlag(idx):
                 print("Context error: flag %d does not exist" % idx)
                 return
-            ctx.outputs.add(Script.Flag(idx))
+            self.outputs.add(Script.Flag(idx))
             if val:
                 self.flags[idx >> 3] |= (1 << (idx % 8))
             else:
@@ -340,17 +380,17 @@ class Script:
 
         def setVar(self, idx, val):
             if Script.isVar(idx):
-                ctx.outputs.add(Script.Var(idx))
+                self.outputs.add(Script.Var(idx))
                 self.variables[idx - Script.VAR_OFFSET] = val
             elif Script.isTemp(idx):
-                ctx.outputs.add(Script.Temp(idx))
+                self.outputs.add(Script.Temp(idx))
                 self.temps[idx - Script.TEMP_OFFSET] = val
             else:
                 print("Context error: variable %d does not exist" % idx)
 
         def setBank(self, idx, val):
             if Script.isBank(idx):
-                ctx.outputs.add(Script.Bank(idx))
+                self.outputs.add(Script.Bank(idx))
                 self.banks[idx] = val
             else:
                 print("Context error: bank %d does not exist" % idx)
@@ -446,11 +486,24 @@ class Script:
                 print("")
             subPrint(addr)
 
+    def explore(self):
+        open_ctxs = [Script.Context(addr = self.addr)]
+        closed_ctxs = []
+        while len(open_ctxs) > 0:
+            ctx = open_ctxs.pop(0)
+            while True:
+                instr = Instruction(ctx.pc)
+                instr.cmd.explore(open_ctxs, ctx, instr)
+                if instr.opcode == 0x02:
+                    closed_ctxs.append(ctx)
+                    break
+        return closed_ctxs
+
 cmds = [
     Command(0x00, "nop", ""),
     Command(0x01, "nop1", ""),
     Command(0x02, "end", ""),
-    Command(0x03, "return", ""),
+    CommandReturn(0x03, "return", ""),
     CommandCall(0x04, "call 0x%08x", "ptr"),
     CommandGoto(0x05, "goto 0x%08x", "ptr"),
     CommandIf1(0x06, "if1 %#x 0x%08x", "byte ptr"),
