@@ -376,7 +376,7 @@ class Script:
             if other is None:
                 ptr = mem.readU32(0x03005008)
                 self.flags = np.frombuffer(mem.bufferFromAddr(ptr + 0xEE0)[:Script.FLAG_COUNT >> 3], dtype=np.uint8).copy()
-                self.variables = np.frombuffer(mem.bufferFromAddr(ptr + 0x1000)[:Script.VAR_COUNT], dtype=np.uint16).copy()
+                self.variables = np.frombuffer(mem.bufferFromAddr(ptr + 0x1000)[:Script.VAR_COUNT * 2], dtype=np.uint16).copy()
                 self.temps = np.zeros(Script.TEMP_COUNT, dtype=np.uint16)
                 self.banks = np.zeros(Script.BANK_COUNT, dtype=np.uint32)
                 self.cmp1 = self.cmp2 = 0
