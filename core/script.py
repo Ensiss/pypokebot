@@ -41,10 +41,6 @@ class Command:
             if arg == "":
                 continue
             self.fmt += Command.arg_fmts[arg]
-        self.size = struct.calcsize("<" + self.fmt) + 1 # Add 1 for bytecode
-
-    def __len__(self):
-        return self.size
 
     def unrolledString(self, addr):
         """
@@ -57,6 +53,9 @@ class Command:
         Called to pretty print a script. Override to define specific behavior.
         """
         return self.str_fmt % instr.args
+
+    def argsFormat(self, instr):
+        return self.fmt
 
     def execute(self, ctx, instr):
         """
@@ -215,6 +214,37 @@ class CommandBufferString(Command):
     def format(self, instr):
         return "bufferstring %d \"%s\"" % (instr.args[0], self.unrolledString(instr.args[1]))
 
+class CommandTrainerBattle(Command):
+    def format(self, instr):
+        cmd_type = instr.args[0]
+        if cmd_type > 9:
+            cmd_type = 0
+        ttext = ["normal",
+                 "run_after_win", "run_after_win",
+                 "continue_caller",
+                 "double",
+                 "rematch",
+                 "double_special",
+                 "double_rematch",
+                 "double_special",
+                 "tutorial"][cmd_type]
+        fmt = "trainerbattle %s" % ttext
+        fmt += "(%#x)" % instr.args[0]
+        fmt += " %#x %#x" % instr.args[1:3]
+        for i, arg in enumerate(instr.args[3:]):
+            if (cmd_type == 1 or cmd_type == 2) and i == 2:
+                fmt += " @0x%08x" % instr.args[3+i]
+            else:
+                fmt += ' "%s"' % self.unrolledString(instr.args[3+i])
+        return fmt
+
+    def argsFormat(self, instr):
+        cmd_type = mem.readU8(instr.addr + 1)
+        if cmd_type > 9:
+            cmd_type = 0
+        nptrs = [2, 3, 3, 1, 3, 2, 4, 3, 4, 2][cmd_type]
+        return self.fmt[:3+nptrs]
+
 class CommandPrepareMsg(Command):
     def format(self, instr):
         if instr.args[0] == 0:
@@ -251,11 +281,13 @@ class Instruction:
         self.addr = addr
         self.opcode = mem.readU8(addr)
         self.cmd = cmds[self.opcode]
-        self.args = mem.unpack(addr+1, self.cmd.fmt)
-        self.next_addr = self.addr + len(self.cmd)
+        self.args_fmt = self.cmd.argsFormat(self)
+        self.args = mem.unpack(addr+1, self.args_fmt)
+        self.size = struct.calcsize("<" + self.args_fmt) + 1 # +1 for bytecode
+        self.next_addr = self.addr + self.size
 
     def __len__(self):
-        return len(self.cmd)
+        return self.size
 
     def __str__(self):
         return self.cmd.format(self)
@@ -592,7 +624,7 @@ cmds = [
     Command(0x59, "", ""),
     Command(0x5A, "faceplayer", ""),
     Command(0x5B, "", ""),
-    Command(0x5C, "trainerbattle %#x %#x %#x 0x%08x 0x%08x 0x%08x 0x%08x", "byte word word ptr ptr ptr ptr"),
+    CommandTrainerBattle(0x5C, "trainerbattle %#x %#x %#x 0x%08x 0x%08x 0x%08x 0x%08x", "byte word word ptr ptr ptr ptr"),
     Command(0x5D, "repeattrainerbattle", ""),
     Command(0x5E, "", ""),
     Command(0x5F, "", ""),
