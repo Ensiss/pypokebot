@@ -54,7 +54,17 @@ class Command:
         """
         return self.str_fmt % instr.args
 
+    def inPrint(self, jumps, instr):
+        """
+        Called for each instruction when pretty printing.
+        Override to store jumps to other scripts.
+        """
+        return
+
     def argsFormat(self, instr):
+        """
+        Return struct formatting string. Override for dynamic commands.
+        """
         return self.fmt
 
     def execute(self, ctx, instr):
@@ -84,15 +94,24 @@ class CommandCall(Command):
         ctx.stack.append(instr.next_addr)
         ctx.pc = instr.args[0]
 
+    def inPrint(self, jumps, instr):
+        jumps.append(instr.args[-1])
+
 class CommandGoto(Command):
     def execute(self, ctx, instr):
         ctx.pc = instr.args[0]
+
+    def inPrint(self, jumps, instr):
+        jumps.append(instr.args[-1])
 
 class CommandIf(Command):
     def format(self, instr):
         op = ["<", "==", ">", "<=", ">=", "!=", "?"][min(6, instr.args[0])]
         cmd = "goto" if instr.opcode == 0x06 else "call"
         return  "if %s %s 0x%08x" % (op, cmd, instr.args[1])
+
+    def inPrint(self, jumps, instr):
+        jumps.append(instr.args[-1])
 
     def explore(self, open_ctxs, ctx, instr):
         jump_ctx = ctx.copy()
@@ -237,6 +256,10 @@ class CommandTrainerBattle(Command):
             else:
                 fmt += ' "%s"' % self.unrolledString(instr.args[3+i])
         return fmt
+
+    def inPrint(self, jumps, instr):
+        if instr.args[0] == 1 or instr.args[0] == 2:
+            jumps.append(instr.args[5])
 
     def argsFormat(self, instr):
         cmd_type = mem.readU8(instr.addr + 1)
@@ -499,8 +522,7 @@ class Script:
                     header = "0x%08x: " % instr.addr
                 print(header + str(instr))
                 # Store destination of jumps and conditions
-                if 0x04 <= instr.opcode <= 0x07:
-                    jumps.append(instr.args[-1])
+                instr.cmd.inPrint(jumps, instr)
                 # Exit at function end
                 if instr.opcode in [0x02, 0x03]: # end/return
                     break
