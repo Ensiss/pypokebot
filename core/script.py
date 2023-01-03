@@ -75,7 +75,7 @@ class Command:
         """
         ctx.pc = instr.next_addr
 
-    def explore(self, open_ctxs, ctx, instr):
+    def explore(self, open_ctxs, conditionals, ctx, instr):
         """
         Called to explore all script branches and track inputs and outputs.
         This should be different from execute only for branching instructions.
@@ -113,6 +113,26 @@ class CommandIf(Command):
     def inPrint(self, jumps, instr):
         jumps.append(instr.args[-1])
 
+    def exploreFalse(self, conditionals, ctx, instr):
+        ctx.pc = instr.next_addr
+        conditionals[instr.addr] |= Script.Cond.FALSE
+
+    def explore(self, open_ctxs, conditionals, ctx, instr):
+        if instr.addr not in conditionals or conditionals[instr.addr] == Script.Cond.NONE:
+            conditionals[instr.addr] = Script.Cond.NONE
+            jump_ctx = ctx.copy()
+            self.exploreTrue(conditionals, jump_ctx, instr)
+            open_ctxs.append(jump_ctx)
+            self.exploreFalse(conditionals, ctx, instr)
+        else:
+            cond = conditionals[instr.addr]
+            if cond == Script.Cond.TRUE:
+                self.exploreFalse(conditionals, ctx, instr)
+            elif cond == Script.Cond.FALSE:
+                self.exploreTrue(conditionals, ctx, instr)
+            else:
+                ctx.force_exit = True
+
 class CommandIfJump(CommandIf):
     def execute(self, ctx, instr):
         if instr.args[0] > 5:
@@ -123,11 +143,9 @@ class CommandIfJump(CommandIf):
         else:
             Command.execute(self, ctx, instr)
 
-    def explore(self, open_ctxs, ctx, instr):
-        jump_ctx = ctx.copy()
-        jump_ctx.pc = instr.args[1]
-        open_ctxs.append(jump_ctx)
-        ctx.pc = instr.next_addr
+    def exploreTrue(self, conditionals, ctx, instr):
+        ctx.pc = instr.args[1]
+        conditionals[instr.addr] |= Script.Cond.TRUE
 
 class CommandIfCall(CommandIf):
     def execute(self, ctx, instr):
@@ -140,12 +158,10 @@ class CommandIfCall(CommandIf):
         else:
             Command.execute(self, ctx, instr)
 
-    def explore(self, open_ctxs, ctx, instr):
-        jump_ctx = ctx.copy()
-        jump_ctx.stack.append(instr.next_addr)
-        jump_ctx.pc = instr.args[1]
-        open_ctxs.append(jump_ctx)
-        ctx.pc = instr.next_addr
+    def exploreTrue(self, conditionals, ctx, instr):
+        ctx.stack.append(instr.next_addr)
+        ctx.pc = instr.args[1]
+        conditionals[instr.addr] |= Script.Cond.TRUE
 
 class CommandLoadPointer(Command):
     def format(self, instr):
@@ -332,6 +348,12 @@ class Script:
     TEMP_OFFSET = 0x8000
     LASTRESULT = 0x800D
 
+    class Cond(enum.IntEnum):
+        NONE = 0
+        TRUE = 1
+        FALSE = 2
+        ALL = 3
+
     class Type(enum.IntEnum):
         PERSON = 0
         SIGN = enum.auto()
@@ -391,6 +413,7 @@ class Script:
                 self.stack = []
                 self.inputs = set()
                 self.outputs = set()
+                self.force_exit = False
             else:
                 self.flags = other.flags.copy()
                 self.variables = other.variables.copy()
@@ -402,6 +425,7 @@ class Script:
                 self.stack = other.stack.copy()
                 self.inputs = other.inputs.copy()
                 self.outputs = other.outputs.copy()
+                self.force_exit = other.force_exit
 
         def copy(self):
             return Script.Context(self)
@@ -466,6 +490,17 @@ class Script:
 
     def __init__(self, addr):
         self.addr = addr
+        # self.ctxs = self.explore()
+        # self.outflags = set()
+        # for ctx in self.ctxs:
+        #     for storage in ctx.outputs:
+        #         if type(storage) is Script.Flag:
+        #             self.outflags.add(int(storage))
+        # self.inflags = set()
+        # for ctx in self.ctxs:
+        #     for storage in ctx.inputs:
+        #         if type(storage) is Script.Flag:
+        #             self.inflags.add(int(storage))
 
     def getAt(addr):
         return Script(addr)
@@ -548,14 +583,15 @@ class Script:
             subPrint(addr)
 
     def explore(self):
+        conditionals = {}
         open_ctxs = [Script.Context(addr = self.addr)]
         closed_ctxs = []
         while len(open_ctxs) > 0:
             ctx = open_ctxs.pop(0)
             while True:
                 instr = Instruction(ctx.pc)
-                instr.cmd.explore(open_ctxs, ctx, instr)
-                if instr.opcode == 0x02:
+                instr.cmd.explore(open_ctxs, conditionals, ctx, instr)
+                if instr.opcode == 0x02 or ctx.force_exit:
                     closed_ctxs.append(ctx)
                     break
         return closed_ctxs
