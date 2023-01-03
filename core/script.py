@@ -113,12 +113,6 @@ class CommandIf(Command):
     def inPrint(self, jumps, instr):
         jumps.append(instr.args[-1])
 
-    def explore(self, open_ctxs, ctx, instr):
-        jump_ctx = ctx.copy()
-        jump_ctx.pc = instr.args[1]
-        open_ctxs.append(jump_ctx)
-        ctx.pc = instr.next_addr
-
 class CommandIf1(CommandIf):
     def execute(self, ctx, instr):
         if instr.args[0] > 5:
@@ -128,6 +122,12 @@ class CommandIf1(CommandIf):
             ctx.pc = instr.args[1]
         else:
             Command.execute(self, ctx, instr)
+
+    def explore(self, open_ctxs, ctx, instr):
+        jump_ctx = ctx.copy()
+        jump_ctx.pc = instr.args[1]
+        open_ctxs.append(jump_ctx)
+        ctx.pc = instr.next_addr
 
 class CommandIf2(CommandIf):
     def execute(self, ctx, instr):
@@ -139,6 +139,13 @@ class CommandIf2(CommandIf):
             ctx.pc = instr.args[1]
         else:
             Command.execute(self, ctx, instr)
+
+    def explore(self, open_ctxs, ctx, instr):
+        jump_ctx = ctx.copy()
+        jump_ctx.stack.append(instr.next_addr)
+        jump_ctx.pc = instr.args[1]
+        open_ctxs.append(jump_ctx)
+        ctx.pc = instr.next_addr
 
 class CommandLoadPointer(Command):
     def format(self, instr):
