@@ -113,10 +113,10 @@ class CommandIf(Command):
     def inPrint(self, jumps, instr):
         jumps.append(instr.args[-1])
 
-class CommandIf1(CommandIf):
+class CommandIfJump(CommandIf):
     def execute(self, ctx, instr):
         if instr.args[0] > 5:
-            print("If1 error: no operator %d" % instr.args[0])
+            print("IfJump error: no operator %d" % instr.args[0])
             return
         if Command.cmd_op[instr.args[0]](ctx.cmp1, ctx.cmp2):
             ctx.pc = instr.args[1]
@@ -129,10 +129,10 @@ class CommandIf1(CommandIf):
         open_ctxs.append(jump_ctx)
         ctx.pc = instr.next_addr
 
-class CommandIf2(CommandIf):
+class CommandIfCall(CommandIf):
     def execute(self, ctx, instr):
         if instr.args[0] > 5:
-            print("If2 error: no operator %d" % instr.args[0])
+            print("IfCall error: no operator %d" % instr.args[0])
             return
         if Command.cmd_op[instr.args[0]](ctx.cmp1, ctx.cmp2):
             ctx.stack.append(instr.next_addr)
@@ -567,8 +567,8 @@ cmds = [
     CommandReturn(0x03, "return", ""),
     CommandCall(0x04, "call 0x%08x", "ptr"),
     CommandGoto(0x05, "goto 0x%08x", "ptr"),
-    CommandIf1(0x06, "if1 %#x 0x%08x", "byte ptr"),
-    CommandIf2(0x07, "if2 %#x 0x%08x", "byte ptr"),
+    CommandIfJump(0x06, "if %#x jump 0x%08x", "byte ptr"),
+    CommandIfCall(0x07, "if %#x call 0x%08x", "byte ptr"),
     Command(0x08, "gotostd %#x", "byte"),
     Command(0x09, "callstd %#x", "byte"),
     Command(0x0A, "gotostdif %#x %#x", "byte byte"),
