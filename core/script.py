@@ -82,10 +82,15 @@ class Command:
         """
         return self.execute(ctx, instr)
 
+class CommandEnd(Command):
+    def execute(self, ctx, instr):
+        ctx.do_exit = True
+
 class CommandReturn(Command):
     def execute(self, ctx, instr):
         if len(ctx.stack) == 0:
-            print("Return error: empty stack")
+            print("Return error@0x%08x: empty stack" % instr.addr)
+            ctx.do_exit = True
             return
         ctx.pc = ctx.stack.pop()
 
@@ -131,7 +136,7 @@ class CommandIf(Command):
             elif cond == Script.Cond.FALSE:
                 self.exploreTrue(conditionals, ctx, instr)
             else:
-                ctx.force_exit = True
+                ctx.do_exit = True
 
 class CommandIfJump(CommandIf):
     def execute(self, ctx, instr):
@@ -413,7 +418,7 @@ class Script:
                 self.stack = []
                 self.inputs = set()
                 self.outputs = set()
-                self.force_exit = False
+                self.do_exit = False
             else:
                 self.flags = other.flags.copy()
                 self.variables = other.variables.copy()
@@ -425,7 +430,7 @@ class Script:
                 self.stack = other.stack.copy()
                 self.inputs = other.inputs.copy()
                 self.outputs = other.outputs.copy()
-                self.force_exit = other.force_exit
+                self.do_exit = other.do_exit
 
         def copy(self):
             return Script.Context(self)
@@ -591,7 +596,7 @@ class Script:
             while True:
                 instr = Instruction(ctx.pc)
                 instr.cmd.explore(open_ctxs, conditionals, ctx, instr)
-                if instr.opcode == 0x02 or ctx.force_exit:
+                if ctx.do_exit:
                     closed_ctxs.append(ctx)
                     break
         return closed_ctxs
@@ -599,7 +604,7 @@ class Script:
 cmds = [
     Command(0x00, "nop", ""),
     Command(0x01, "nop1", ""),
-    Command(0x02, "end", ""),
+    CommandEnd(0x02, "end", ""),
     CommandReturn(0x03, "return", ""),
     CommandCall(0x04, "call 0x%08x", "ptr"),
     CommandGoto(0x05, "goto 0x%08x", "ptr"),
