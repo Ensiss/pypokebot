@@ -210,13 +210,19 @@ class MapScript(utils.RawStruct):
             self.value = 0
 
 class SignEvent(utils.RawStruct):
-    fmt = "4HI"
+    fmt = "2H2B2xI"
     def __init__(self, addr):
         (self.x,
          self.y,
          self.level,
          self.type,
-         self.script_ptr) = super().__init__(addr)
+         union) = super().__init__(addr)
+        # Hidden objects
+        self.script_ptr = union
+        self.item_id = (union >> 0) & 0xFFFF
+        self.hidden_item_id = (union >> 16) & 0xFF
+        self.quantity = (union >> 24) & 0x7F
+        self.is_underfoot = (union >> 31) & 1
 
 class WarpEvent(utils.RawStruct):
     fmt = "2H4B"
