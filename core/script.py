@@ -436,6 +436,8 @@ class Script:
             return Script.Context(self)
 
         def getFlag(self, idx):
+            if Script.isVar(idx):
+                idx = self.getVar(idx)
             if Script.isFlag(idx):
                 self.inputs.add(Script.Flag(idx))
                 return bool(self.flags[idx >> 3] & (1 << (idx % 8)))
@@ -460,6 +462,8 @@ class Script:
             return 0
 
         def setFlag(self, idx, val):
+            if Script.isVar(idx):
+                idx = self.getVar(idx)
             if not Script.isFlag(idx):
                 print("Context error: flag %d does not exist" % idx)
                 return
