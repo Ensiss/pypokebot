@@ -436,10 +436,11 @@ class Script:
             return Script.Context(self)
 
         def getFlag(self, idx):
+            raw = idx
             if Script.isVar(idx):
                 idx = self.getVar(idx)
+            self.inputs.add(Script.Flag(raw))
             if Script.isFlag(idx):
-                self.inputs.add(Script.Flag(idx))
                 return bool(self.flags[idx >> 3] & (1 << (idx % 8)))
             print("Context error: flag %d does not exist" % idx)
             return 0
@@ -462,12 +463,13 @@ class Script:
             return 0
 
         def setFlag(self, idx, val):
+            raw = idx
             if Script.isVar(idx):
                 idx = self.getVar(idx)
+            self.outputs.add(Script.Flag(raw))
             if not Script.isFlag(idx):
                 print("Context error: flag %d does not exist" % idx)
                 return
-            self.outputs.add(Script.Flag(idx))
             if val:
                 self.flags[idx >> 3] |= (1 << (idx % 8))
             else:
@@ -499,17 +501,17 @@ class Script:
 
     def __init__(self, addr):
         self.addr = addr
-        # self.ctxs = self.explore()
-        # self.outflags = set()
-        # for ctx in self.ctxs:
-        #     for storage in ctx.outputs:
-        #         if type(storage) is Script.Flag:
-        #             self.outflags.add(int(storage))
-        # self.inflags = set()
-        # for ctx in self.ctxs:
-        #     for storage in ctx.inputs:
-        #         if type(storage) is Script.Flag:
-        #             self.inflags.add(int(storage))
+        self.ctxs = self.explore()
+        self.outflags = set()
+        for ctx in self.ctxs:
+            for storage in ctx.outputs:
+                if type(storage) is Script.Flag:
+                    self.outflags.add(int(storage))
+        self.inflags = set()
+        for ctx in self.ctxs:
+            for storage in ctx.inputs:
+                if type(storage) is Script.Flag:
+                    self.inflags.add(int(storage))
 
     def getAt(addr):
         return Script(addr)
