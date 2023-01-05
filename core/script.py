@@ -499,7 +499,11 @@ class Script:
         def compare8(self, a, b):
             self.compare(np.uint8(a), np.uint8(b))
 
-    def __init__(self, addr):
+    def __init__(self, addr, bid=-1, mid=-1, idx=-1, stype=Script.Type.NONE):
+        self.bank_id = bid
+        self.map_id = mid
+        self.idx = idx
+        self.type = stype
         self.addr = addr
         self.ctxs = self.explore()
         self.outflags = set()
@@ -518,7 +522,7 @@ class Script:
 
     def getStd(n):
         addr = mem.readU32(0x08160450 + n * 4)
-        return Script(addr)
+        return Script(addr, idx=n, stype=Script.Type.STD)
 
     def getGeneric(idx, stype, bank_id=0, map_id=0):
         if stype == Script.Type.STD and idx < 10:
@@ -532,13 +536,13 @@ class Script:
             return None
         m = db.banks[bank_id][map_id]
         if stype == Script.Type.PERSON and idx < len(m.persons):
-            return Script.getAt(m.persons[idx].script_ptr)
+            return Script(m.persons[idx].script_ptr, bank_id, map_id, idx, stype)
         elif stype == Script.Type.SIGN and idx < len(m.signs):
-            return Script.getAt(m.signs[idx].script_ptr)
+            return Script(m.signs[idx].script_ptr, bank_id, map_id, idx, stype)
         elif stype == Script.Type.SCRIPT and idx < len(m.scripts):
-            return Script.getAt(m.scripts[idx].script_ptr)
+            return Script(m.scripts[idx].script_ptr, bank_id, map_id, idx, stype)
         elif stype == Script.Type.MAPSCRIPT and idx < len(m.map_scripts):
-            return Script.getAt(m.map_scripts[idx].script_ptr)
+            return Script(m.map_scripts[idx].script_ptr, bank_id, map_id, idx, stype)
         print("getScript error: cannot find script %d of type %d in map [%d, %d]" %
               (idx, stype, bank_id, map_id))
         return None
