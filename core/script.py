@@ -351,7 +351,10 @@ class Script:
     BUFF_COUNT = 0x03
     VAR_OFFSET = 0x4000
     TEMP_OFFSET = 0x8000
+    FACING = 0x800C
     LASTRESULT = 0x800D
+    ITEM_ID = 0x800E
+    LASTTALKED = 0x800F
 
     class Cond(enum.IntEnum):
         NONE = 0
@@ -406,7 +409,7 @@ class Script:
         return Script.TEMP_OFFSET <= x < Script.TEMP_OFFSET + Script.TEMP_COUNT
 
     class Context:
-        def __init__(self, other=None, addr=0):
+        def __init__(self, other=None, parent=None):
             if other is None:
                 ptr = mem.readU32(0x03005008)
                 self.flags = np.frombuffer(mem.bufferFromAddr(ptr + 0xEE0)[:Script.FLAG_COUNT >> 3], dtype=np.uint8).copy()
@@ -414,11 +417,15 @@ class Script:
                 self.temps = np.zeros(Script.TEMP_COUNT, dtype=np.uint16)
                 self.banks = np.zeros(Script.BANK_COUNT, dtype=np.uint32)
                 self.cmp1 = self.cmp2 = 0
-                self.pc = addr
+                self.pc = 0
                 self.stack = []
                 self.inputs = set()
                 self.outputs = set()
                 self.do_exit = False
+                if parent:
+                    self.pc = parent.addr
+                    if parent.type == Script.Type.PERSON:
+                        self.setVar(Script.LASTTALKED, parent.idx, track=False)
             else:
                 self.flags = other.flags.copy()
                 self.variables = other.variables.copy()
@@ -435,38 +442,43 @@ class Script:
         def copy(self):
             return Script.Context(self)
 
-        def getFlag(self, idx):
+        def getFlag(self, idx, track=True):
             raw = idx
             if Script.isVar(idx):
                 idx = self.getVar(idx)
-            self.inputs.add(Script.Flag(raw))
+            if track:
+                self.inputs.add(Script.Flag(raw))
             if Script.isFlag(idx):
                 return bool(self.flags[idx >> 3] & (1 << (idx % 8)))
             print("Context error: flag %d does not exist" % idx)
             return 0
 
-        def getVar(self, idx):
+        def getVar(self, idx, track=True):
             if Script.isVar(idx):
-                self.inputs.add(Script.Var(idx))
+                if track:
+                    self.inputs.add(Script.Var(idx))
                 return self.variables[idx - Script.VAR_OFFSET]
             elif Script.isTemp(idx):
-                self.inputs.add(Script.Temp(idx))
+                if track:
+                    self.inputs.add(Script.Temp(idx))
                 return self.temps[idx - Script.TEMP_OFFSET]
             print("Context error: variable %d does not exist" % idx)
             return 0
 
-        def getBank(self, idx):
+        def getBank(self, idx, track=True):
             if Script.isBank(idx):
-                self.inputs.add(Script.Bank(idx))
+                if track:
+                    self.inputs.add(Script.Bank(idx))
                 return self.banks[idx]
             print("Context error: bank %d does not exist" % idx)
             return 0
 
-        def setFlag(self, idx, val):
+        def setFlag(self, idx, val, track=True):
             raw = idx
             if Script.isVar(idx):
                 idx = self.getVar(idx)
-            self.outputs.add(Script.Flag(raw))
+            if track:
+                self.outputs.add(Script.Flag(raw))
             if not Script.isFlag(idx):
                 print("Context error: flag %d does not exist" % idx)
                 return
@@ -475,19 +487,22 @@ class Script:
             else:
                 self.flags[idx >> 3] &= ~(1 << (idx % 8))
 
-        def setVar(self, idx, val):
+        def setVar(self, idx, val, track=True):
             if Script.isVar(idx):
-                self.outputs.add(Script.Var(idx))
+                if track:
+                    self.outputs.add(Script.Var(idx))
                 self.variables[idx - Script.VAR_OFFSET] = val
             elif Script.isTemp(idx):
-                self.outputs.add(Script.Temp(idx))
+                if track:
+                    self.outputs.add(Script.Temp(idx))
                 self.temps[idx - Script.TEMP_OFFSET] = val
             else:
                 print("Context error: variable %d does not exist" % idx)
 
-        def setBank(self, idx, val):
+        def setBank(self, idx, val, track=True):
             if Script.isBank(idx):
-                self.outputs.add(Script.Bank(idx))
+                if track:
+                    self.outputs.add(Script.Bank(idx))
                 self.banks[idx] = val
             else:
                 print("Context error: bank %d does not exist" % idx)
@@ -601,7 +616,7 @@ class Script:
 
     def explore(self):
         conditionals = {}
-        open_ctxs = [Script.Context(addr = self.addr)]
+        open_ctxs = [Script.Context(parent = self)]
         closed_ctxs = []
         while len(open_ctxs) > 0:
             ctx = open_ctxs.pop(0)
