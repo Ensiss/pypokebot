@@ -167,6 +167,81 @@ class CommandIfCall(CommandIf):
         ctx.pc = instr.args[1]
         conditionals[instr.addr] |= Script.Cond.TRUE
 
+class CommandStd(Command):
+    def funcAddr(self, n):
+        return mem.readU32(0x08160450 + n * 4)
+    def inPrint(self, jumps, instr):
+        jumps.append(self.funcAddr(instr.args[-1]))
+
+class CommandCallStd(CommandStd):
+    def format(self, instr):
+        return  "call std%#x(0x%08x)" % (instr.args[0], self.funcAddr(instr.args[0]))
+    def execute(self, ctx, instr):
+        ctx.stack.append(instr.next_addr)
+        ctx.pc = self.funcAddr(instr.args[0])
+class CommandGotoStd(CommandStd):
+    def format(self, instr):
+        return  "goto std%#x(0x%08x)" % (instr.args[0], self.funcAddr(instr.args[0]))
+    def execute(self, ctx, instr):
+        ctx.pc = self.funcAddr(instr.args[0])
+
+class CommandIfStd(CommandStd):
+    def format(self, instr):
+        op = ["<", "==", ">", "<=", ">=", "!=", "?"][min(6, instr.args[0])]
+        cmd = "goto" if instr.opcode == 0x0a else "call"
+        return  "if %s %s std%#x(0x%08x)" % (
+            op, cmd, instr.args[1], self.funcAddr(instr.args[1]))
+
+    def exploreFalse(self, conditionals, ctx, instr):
+        ctx.pc = instr.next_addr
+        conditionals[instr.addr] |= Script.Cond.FALSE
+
+    def explore(self, open_ctxs, conditionals, ctx, instr):
+        if instr.addr not in conditionals or conditionals[instr.addr] == Script.Cond.NONE:
+            conditionals[instr.addr] = Script.Cond.NONE
+            jump_ctx = ctx.copy()
+            self.exploreTrue(conditionals, jump_ctx, instr)
+            open_ctxs.append(jump_ctx)
+            self.exploreFalse(conditionals, ctx, instr)
+        else:
+            cond = conditionals[instr.addr]
+            if cond == Script.Cond.TRUE:
+                self.exploreFalse(conditionals, ctx, instr)
+            elif cond == Script.Cond.FALSE:
+                self.exploreTrue(conditionals, ctx, instr)
+            else:
+                ctx.do_exit = True
+
+class CommandIfJumpStd(CommandIfStd):
+    def execute(self, ctx, instr):
+        if instr.args[0] > 5:
+            print("IfJumpStd error: no operator %d" % instr.args[0])
+            return
+        if Command.cmd_op[instr.args[0]](ctx.cmp1, ctx.cmp2):
+            ctx.pc = self.funcAddr(instr.args[1])
+        else:
+            Command.execute(self, ctx, instr)
+
+    def exploreTrue(self, conditionals, ctx, instr):
+        ctx.pc = self.funcAddr(instr.args[1])
+        conditionals[instr.addr] |= Script.Cond.TRUE
+
+class CommandIfCallStd(CommandIfStd):
+    def execute(self, ctx, instr):
+        if instr.args[0] > 5:
+            print("IfCallStd error: no operator %d" % instr.args[0])
+            return
+        if Command.cmd_op[instr.args[0]](ctx.cmp1, ctx.cmp2):
+            ctx.stack.append(instr.next_addr)
+            ctx.pc = self.funcAddr(instr.args[1])
+        else:
+            Command.execute(self, ctx, instr)
+
+    def exploreTrue(self, conditionals, ctx, instr):
+        ctx.stack.append(instr.next_addr)
+        ctx.pc = self.funcAddr(instr.args[1])
+        conditionals[instr.addr] |= Script.Cond.TRUE
+
 class CommandLoadPointer(Command):
     def format(self, instr):
         return "loadpointer %d \"%s\"" % (instr.args[0], self.unrolledString(instr.args[1]))
@@ -682,10 +757,10 @@ cmds = [
     CommandGoto(0x05, "goto 0x%08x", "ptr"),
     CommandIfJump(0x06, "if %#x jump 0x%08x", "byte ptr"),
     CommandIfCall(0x07, "if %#x call 0x%08x", "byte ptr"),
-    Command(0x08, "gotostd %#x", "byte"),
-    Command(0x09, "callstd %#x", "byte"),
-    Command(0x0A, "gotostdif %#x %#x", "byte byte"),
-    Command(0x0B, "callstdif %#x %#x", "byte byte"),
+    CommandGotoStd(0x08, "gotostd %#x", "byte"),
+    CommandCallStd(0x09, "callstd %#x", "byte"),
+    CommandIfJumpStd(0x0A, "gotostdif %#x %#x", "byte byte"),
+    CommandIfCallStd(0x0B, "callstdif %#x %#x", "byte byte"),
     Command(0x0C, "jumpram", ""),
     Command(0x0D, "killscript", ""),
     Command(0x0E, "setmysteryeventstatus %#x", "byte"),
