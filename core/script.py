@@ -499,11 +499,13 @@ class Script:
         def compare8(self, a, b):
             self.compare(np.uint8(a), np.uint8(b))
 
-    def __init__(self, addr, bid=-1, mid=-1, idx=-1, stype=Script.Type.NONE):
+    def __init__(self, addr, bid=-1, mid=-1, idx=-1, stype=-1):
         self.bank_id = bid
         self.map_id = mid
         self.idx = idx
-        self.type = stype
+        self.type = Script.Type.NONE
+        if stype != -1:
+            self.type = stype
         self.addr = addr
         self.ctxs = self.explore()
         self.outflags = set()
