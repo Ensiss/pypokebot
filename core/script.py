@@ -327,6 +327,19 @@ class CommandTrainerBattle(Command):
         nptrs = [2, 3, 3, 1, 3, 2, 4, 3, 4, 2][cmd_type]
         return self.fmt[:3+nptrs]
 
+class CommandCheckTrainerFlag(Command):
+    def execute(self, ctx, instr):
+        ctx.compare(ctx.getFlag(ctx.getVar(instr.args[0]) + 0x500), 1)
+        Command.execute(self, ctx, instr)
+class CommandSetTrainerFlag(Command):
+    def execute(self, ctx, instr):
+        ctx.setFlag(ctx.getVar(instr.args[0]) + 0x500, 1)
+        Command.execute(self, ctx, instr)
+class CommandClearTrainerFlag(Command):
+    def execute(self, ctx, instr):
+        ctx.setFlag(ctx.getVar(instr.args[0]) + 0x500, 0)
+        Command.execute(self, ctx, instr)
+
 class CommandPrepareMsg(Command):
     def format(self, instr):
         if instr.args[0] == 0:
@@ -341,12 +354,10 @@ class CommandSetFlag(Command):
     def execute(self, ctx, instr):
         ctx.setFlag(instr.args[0], 1)
         Command.execute(self, ctx, instr)
-
 class CommandClearFlag(Command):
     def execute(self, ctx, instr):
         ctx.setFlag(instr.args[0], 0)
         Command.execute(self, ctx, instr)
-
 class CommandCheckFlag(Command):
     def execute(self, ctx, instr):
         ctx.compare(ctx.getFlag(instr.args[0]), 1)
@@ -759,9 +770,9 @@ cmds = [
     Command(0x5D, "repeattrainerbattle", ""),
     Command(0x5E, "gotopostbattlescript", ""),
     Command(0x5F, "gotobeatenscript", ""),
-    Command(0x60, "checktrainerflag %#x", "word/var"),
-    Command(0x61, "cleartrainerflag %#x", "word/var"),
-    Command(0x62, "settrainerflag %#x", "word/var"),
+    CommandCheckTrainerFlag(0x60, "checktrainerflag %#x", "word/var"),
+    CommandSetTrainerFlag(0x61, "settrainerflag %#x", "word/var"),
+    CommandClearTrainerFlag(0x62, "cleartrainerflag %#x", "word/var"),
     Command(0x63, "movesprite2 %d %d %d", "word word word"),
     Command(0x64, "moveoffscreen %#x", "word"),
     Command(0x65, "spritebehave %d %d", "word byte"),
