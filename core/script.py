@@ -261,6 +261,38 @@ class CommandBufferString(Command):
     def format(self, instr):
         return "bufferstring %d \"%s\"" % (instr.args[0], self.unrolledString(instr.args[1]))
 
+class CommandHideSprite(Command):
+    def execute(self, ctx, instr):
+        local_id = ctx.getVar(instr.args[0]) # Local ids are 1-indexed
+        if local_id == 0xFF: # Player id
+            return Command.execute(self, ctx, instr)
+        if len(instr.args) == 1:
+            bank_id = ctx.parent.bank_id
+            map_id = ctx.parent.map_id
+        else:
+            bank_id = instr.args[1]
+            map_id = instr.args[2]
+        vis_flag = db.banks[bank_id][map_id].persons[local_id-1].idx
+        if vis_flag != 0:
+            ctx.setFlag(vis_flag, 1)
+        Command.execute(self, ctx, instr)
+
+class CommandShowSprite(Command):
+    def execute(self, ctx, instr):
+        local_id = ctx.getVar(instr.args[0]) # Local ids are 1-indexed
+        if local_id == 0xFF: # Player id
+            return Command.execute(self, ctx, instr)
+        if len(instr.args) == 1:
+            bank_id = ctx.parent.bank_id
+            map_id = ctx.parent.map_id
+        else:
+            bank_id = instr.args[1]
+            map_id = instr.args[2]
+        vis_flag = db.banks[bank_id][map_id].persons[local_id-1].idx
+        if vis_flag != 0:
+            ctx.setFlag(vis_flag, 0)
+        Command.execute(self, ctx, instr)
+
 class CommandTrainerBattle(Command):
     def format(self, instr):
         cmd_type = instr.args[0]
@@ -422,10 +454,11 @@ class Script:
                 self.inputs = set()
                 self.outputs = set()
                 self.do_exit = False
+                self.parent = parent
                 if parent:
                     self.pc = parent.addr
                     if parent.type == Script.Type.PERSON:
-                        self.setVar(Script.LASTTALKED, parent.idx, track=False)
+                        self.setVar(Script.LASTTALKED, parent.idx+1, track=False)
             else:
                 self.flags = other.flags.copy()
                 self.variables = other.variables.copy()
@@ -438,6 +471,7 @@ class Script:
                 self.inputs = other.inputs.copy()
                 self.outputs = other.outputs.copy()
                 self.do_exit = other.do_exit
+                self.parent = other.parent
 
         def copy(self):
             return Script.Context(self)
@@ -462,7 +496,8 @@ class Script:
                 if track:
                     self.inputs.add(Script.Temp(idx))
                 return self.temps[idx - Script.TEMP_OFFSET]
-            print("Context error: variable %d does not exist" % idx)
+            else:
+                return idx
             return 0
 
         def getBank(self, idx, track=True):
@@ -712,13 +747,13 @@ cmds = [
     Command(0x50, "applymovementat %#x 0x%08x", "word ptr"),
     Command(0x51, "waitmovement %#x", "byte/var"),
     Command(0x52, "waitmovementat %#x %#x %#x", "byte/var byte byte"),
-    Command(0x53, "removesprite %#x", "byte/var"),
-    Command(0x54, "removespriteat %#x %#x %#x", "byte/var byte byte"),
-    Command(0x55, "addsprite %#x", "byte/var"),
-    Command(0x56, "addspriteat %#x %#x %#x", "byte/var byte byte"),
+    CommandHideSprite(0x53, "removesprite %#x", "byte/var"),
+    CommandHideSprite(0x54, "removespriteat %#x (bank=%d,map=%d)", "byte/var byte byte"),
+    CommandShowSprite(0x55, "addsprite %#x", "byte/var"),
+    CommandShowSprite(0x56, "addspriteat %#x (bank=%d,map=%d)", "byte/var byte byte"),
     Command(0x57, "setspritexy %#x %#x %#x", "var var var"),
-    Command(0x58, "showspriteat %#x (bank=%d,map=%d)", "byte/var byte byte"),
-    Command(0x59, "hidespriteat %#x (bank=%d,map=%d)", "byte/var byte byte"),
+    CommandShowSprite(0x58, "showspriteat %#x (bank=%d,map=%d)", "byte/var byte byte"),
+    CommandHideSprite(0x59, "hidespriteat %#x (bank=%d,map=%d)", "byte/var byte byte"),
     Command(0x5A, "faceplayer", ""),
     Command(0x5B, "turnsprite %#x dir=%d", "byte/var byte"),
     CommandTrainerBattle(0x5C, "trainerbattle %#x %#x %#x 0x%08x 0x%08x 0x%08x 0x%08x", "byte word word ptr ptr ptr ptr"),
