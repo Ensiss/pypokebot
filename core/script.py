@@ -89,7 +89,6 @@ class CommandEnd(Command):
 class CommandReturn(Command):
     def execute(self, ctx, instr):
         if len(ctx.stack) == 0:
-            print("Return error@0x%08x: empty stack" % instr.addr)
             ctx.do_exit = True
             return
         ctx.pc = ctx.stack.pop()
