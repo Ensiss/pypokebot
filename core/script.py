@@ -403,6 +403,13 @@ class CommandTrainerBattle(Command):
         nptrs = [2, 3, 3, 1, 3, 2, 4, 3, 4, 2][cmd_type]
         return self.fmt[:3+nptrs]
 
+    def explore(self, open_ctxs, conditionals, ctx, instr):
+        if instr.args[0] == 1 or instr.args[0] == 2:
+            jump_ctx = ctx.copy()
+            jump_ctx.pc = instr.args[5]
+            open_ctxs.append(jump_ctx)
+        Command.execute(self, ctx, instr)
+
 class CommandCheckTrainerFlag(Command):
     def execute(self, ctx, instr):
         ctx.compare(ctx.getFlag(ctx.getVar(instr.args[0]) + 0x500), 1)
