@@ -3,6 +3,7 @@ import memory; mem = memory.Memory
 import database; db = database.Database
 import struct
 import enum
+import sys
 
 class Command:
     arg_fmts = {
@@ -473,6 +474,8 @@ class Script:
     ITEM_ID = 0x800E
     LASTTALKED = 0x800F
 
+    cache = {}
+
     class Cond(enum.IntEnum):
         NONE = 0
         TRUE = 1
@@ -654,17 +657,46 @@ class Script:
                 if type(storage) is Script.Flag:
                     self.inflags.add(int(storage))
 
+    def clearCache():
+        Script.cache.clear()
+    def loadCache():
+        for bid, bank in enumerate(db.banks):
+            for mid, m in enumerate(bank):
+                for idx in range(len(m.persons)):
+                    if m.persons[idx].script_ptr == 0:
+                        continue
+                    Script.getPerson(idx, bid, mid)
+                for idx in range(len(m.signs)):
+                    if m.signs[idx].type != 0: # Hidden items
+                        continue
+                    Script.getSign(idx, bid, mid)
+                for idx in range(len(m.scripts)):
+                    Script.getScript(idx, bid, mid)
+                for idx in range(len(m.map_scripts)):
+                    Script.getMapScript(idx, bid, mid)
+    def printCache(path="resources/scripts.txt"):
+        with open(path, "w") as out:
+            for (bid, mid, idx, stype), s in Script.cache.items():
+                sname = ["person","sign","script","mapscript","std","none"][stype]
+                print("\n" + "-"*80, file=out)
+                print("%s#%02d @ map[%d,%d]" % (sname, idx, bid, mid), file=out)
+                s.print(out)
+
     def getAt(addr):
         return Script(addr)
 
-    def getStd(n):
-        addr = mem.readU32(0x08160450 + n * 4)
-        return Script(addr, idx=n, stype=Script.Type.STD)
+    def getGeneric(idx, stype, bank_id=-1, map_id=-1):
+        def getCached(addr, bank_id, map_id, idx, stype):
+            cache_idx = (bank_id, map_id, idx, stype)
+            if cache_idx in Script.cache:
+                return Script.cache[cache_idx]
+            s = Script(addr, bank_id, map_id, idx, stype)
+            Script.cache[cache_idx] = s
+            return s
 
-    def getGeneric(idx, stype, bank_id=0, map_id=0):
         if stype == Script.Type.STD and idx < 10:
-            return Script.getStd(idx)
-        if stype < Script.Type.STD and bank_id == 0 and map_id == 0:
+            return getCached(mem.readU32(0x08160450 + n * 4), -1, -1, idx, stype)
+        if stype < Script.Type.STD and bank_id == -1 and map_id == -1:
             bank_id = db.player.bank_id
             map_id = db.player.map_id
         if bank_id >= len(db.banks) or map_id >= len(db.banks[bank_id]):
@@ -673,27 +705,30 @@ class Script:
             return None
         m = db.banks[bank_id][map_id]
         if stype == Script.Type.PERSON and idx < len(m.persons):
-            return Script(m.persons[idx].script_ptr, bank_id, map_id, idx, stype)
+            addr = m.persons[idx].script_ptr
         elif stype == Script.Type.SIGN and idx < len(m.signs):
-            return Script(m.signs[idx].script_ptr, bank_id, map_id, idx, stype)
+            addr = m.signs[idx].script_ptr
         elif stype == Script.Type.SCRIPT and idx < len(m.scripts):
-            return Script(m.scripts[idx].script_ptr, bank_id, map_id, idx, stype)
+            addr = m.scripts[idx].script_ptr
         elif stype == Script.Type.MAPSCRIPT and idx < len(m.map_scripts):
-            return Script(m.map_scripts[idx].script_ptr, bank_id, map_id, idx, stype)
-        print("getScript error: cannot find script %d of type %d in map [%d, %d]" %
-              (idx, stype, bank_id, map_id))
-        return None
+            addr = m.map_scripts[idx].script_ptr
+        else:
+            print("getGeneric error: cannot find script %d of type %d in map [%d, %d]" % (idx, stype, bank_id, map_id))
+            return None
+        return getCached(addr, bank_id, map_id, idx, stype)
 
-    def getPerson(idx, bank_id=0, map_id=0):
+    def getStd(idx):
+        return Script.getGeneric(idx, Script.Type.STD)
+    def getPerson(idx, bank_id=-1, map_id=-1):
         return Script.getGeneric(idx, Script.Type.PERSON, bank_id, map_id)
-    def getSign(idx, bank_id=0, map_id=0):
+    def getSign(idx, bank_id=-1, map_id=-1):
         return Script.getGeneric(idx, Script.Type.SIGN, bank_id, map_id)
-    def getScript(idx, bank_id=0, map_id=0):
+    def getScript(idx, bank_id=-1, map_id=-1):
         return Script.getGeneric(idx, Script.Type.SCRIPT, bank_id, map_id)
-    def getMapScript(idx, bank_id=0, map_id=0):
+    def getMapScript(idx, bank_id=-1, map_id=-1):
         return Script.getGeneric(idx, Script.Type.MAPSCRIPT, bank_id, map_id)
 
-    def print(self):
+    def print(self, out=sys.stdout):
         def alreadyVisited(addr):
             for addr_min, addr_max in ranges:
                 if addr_min <= addr < addr_max:
@@ -714,7 +749,7 @@ class Script:
                 header = (" "*8) + "%02x: " % (instr.addr & 0xFF)
                 if instr.addr == addr:
                     header = "0x%08x: " % instr.addr
-                print(header + str(instr))
+                print(header + str(instr), file=out)
                 # Store destination of jumps and conditions
                 instr.cmd.inPrint(jumps, instr)
                 # Exit at function end
@@ -731,7 +766,7 @@ class Script:
         while len(addrs) > 0:
             addr = addrs.pop(0)
             if addr != self.addr:
-                print("")
+                print("", file=out)
             subPrint(addr)
 
     def explore(self):
