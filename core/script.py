@@ -470,12 +470,14 @@ class Instruction:
 
 class Script:
     FLAG_COUNT = 0x900
-    VAR_COUNT = 0x100
-    TEMP_COUNT = 0x1F
     BANK_COUNT = 0x04
     BUFF_COUNT = 0x03
     VAR_OFFSET = 0x4000
+    VAR_COUNT = 0x100
     TEMP_OFFSET = 0x8000
+    TEMP_COUNT = 0x1F
+    SPCFLAG_OFFSET = 0x4000
+    SPCFLAG_COUNT = 0x10
     FACING = 0x800C
     LASTRESULT = 0x800D
     ITEM_ID = 0x800E
@@ -528,6 +530,8 @@ class Script:
 
     def isFlag(x):
         return x < Script.FLAG_COUNT
+    def isSpcFlag(x):
+        return Script.SPCFLAG_COUNT <= x < Script.SPCFLAG_OFFSET + Script.SPCFLAG_COUNT
     def isBank(x):
         return x < Script.BANK_COUNT
     def isVar(x):
@@ -540,6 +544,7 @@ class Script:
             if other is None:
                 ptr = mem.readU32(0x03005008)
                 self.flags = np.frombuffer(mem.bufferFromAddr(ptr + 0xEE0)[:Script.FLAG_COUNT >> 3], dtype=np.uint8).copy()
+                self.spcflags = np.zeros(Script.SPCFLAG_COUNT >> 3, dtype=np.uint8)
                 self.variables = np.frombuffer(mem.bufferFromAddr(ptr + 0x1000)[:Script.VAR_COUNT * 2], dtype=np.uint16).copy()
                 self.temps = np.zeros(Script.TEMP_COUNT, dtype=np.uint16)
                 self.banks = np.zeros(Script.BANK_COUNT, dtype=np.uint32)
@@ -556,6 +561,7 @@ class Script:
                         self.setVar(Script.LASTTALKED, parent.idx+1, track=False)
             else:
                 self.flags = other.flags.copy()
+                self.spcflags = other.spcflags.copy()
                 self.variables = other.variables.copy()
                 self.temps = other.temps.copy()
                 self.banks = other.banks.copy()
@@ -573,13 +579,16 @@ class Script:
 
         def getFlag(self, idx, track=True):
             raw = idx
-            if Script.isVar(idx):
+            if not (Script.isFlag(idx) or Script.isSpcFlag(idx)) and Script.isVar(idx):
                 idx = self.getVar(idx)
             if track:
-                self.inputs.add(Script.Flag(raw))
+                self.inputs.add(Script.Flag(idx))
             if Script.isFlag(idx):
                 return bool(self.flags[idx >> 3] & (1 << (idx % 8)))
-            print("Context error: flag %d does not exist" % idx)
+            if Script.isSpcFlag(idx):
+                idx = idx - Script.SPCFLAG_OFFSET
+                return bool(self.spcflags[idx >> 3] & (1 << (idx % 8)))
+            print("Context error: flag %d(raw=%d) does not exist" % (idx, raw))
             return 0
 
         def getVar(self, idx, track=True):
@@ -605,17 +614,19 @@ class Script:
 
         def setFlag(self, idx, val, track=True):
             raw = idx
-            if Script.isVar(idx):
+            if not (Script.isFlag(idx) or Script.isSpcFlag(idx)) and Script.isVar(idx):
                 idx = self.getVar(idx)
             if track:
-                self.outputs.add(Script.Flag(raw))
-            if not Script.isFlag(idx):
-                print("Context error: flag %d does not exist" % idx)
-                return
-            if val:
-                self.flags[idx >> 3] |= (1 << (idx % 8))
+                self.outputs.add(Script.Flag(idx))
+            if Script.isFlag(idx) or Script.isSpcFlag(idx):
+                flagbuf = self.flags if Script.isFlag(idx) else self.spcflags
+                idx = idx if Script.isFlag(idx) else idx - Script.SPCFLAG_OFFSET
+                if val:
+                    flagbuf[idx >> 3] |= (1 << (idx % 8))
+                else:
+                    flagbuf[idx >> 3] &= ~(1 << (idx % 8))
             else:
-                self.flags[idx >> 3] &= ~(1 << (idx % 8))
+                print("Context error: flag %d(raw=%d) does not exist" % (idx, raw))
 
         def setVar(self, idx, val, track=True):
             if Script.isVar(idx):
