@@ -44,7 +44,7 @@ class AutoUpdater:
         if mem.frame_counter > object.__getattribute__(self, "_last_update"):
             self._last_update = mem.frame_counter
             object.__getattribute__(self, "update")()
-        return object.__getitem__(self, idx)
+        return list.__getitem__(self, idx)
 
     def __unlocked_getattribute__(self, name):
         if mem.frame_counter > object.__getattribute__(self, "_last_update"):
