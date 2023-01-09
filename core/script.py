@@ -336,6 +336,11 @@ class CommandBufferString(Command):
     def format(self, instr):
         return "bufferstring %d \"%s\"" % (instr.args[0], self.unrolledString(instr.args[1]))
 
+class CommandGetPartySize(Command):
+    def execute(self, ctx, instr):
+        ctx.setVar(Script.LASTRESULT, db.getPartySize())
+        Command.execute(self, ctx, instr)
+
 class CommandHideSprite(Command):
     def execute(self, ctx, instr):
         local_id = ctx.getVar(instr.args[0]) # Local ids are 1-indexed
@@ -869,7 +874,7 @@ cmds = [
     Command(0x40, "setdivewarp (bank=%d,map=%d) warp#%d (x=%d,y=%d)", "byte byte byte byte/var byte/var"),
     Command(0x41, "setholewarp (bank=%d,map=%d) warp#%d (x=%d,y=%d)", "byte byte byte byte/var byte/var"),
     Command(0x42, "getplayerpos %#x %#x", "var var"),
-    Command(0x43, "getpartysize", ""),
+    CommandGetPartySize(0x43, "getpartysize", ""),
     Command(0x44, "additem %#x %#x", "word/var byte/var"),
     Command(0x45, "removeitem %#x %#x", "word/var byte/var"),
     Command(0x46, "checkitemroom %#x %#x", "word/var byte/var"),

@@ -98,6 +98,14 @@ class Database():
     def getCurrentMap():
         return Database.banks[Database.player.bank_id][Database.player.map_id]
 
+    def getPartySize():
+        sz = 0
+        for ppoke in Database.pteam:
+            if ppoke.growth.species_idx == 0:
+                break
+            sz += 1
+        return sz
+
 class Move(utils.RawStruct):
     fmt = "9B3x"
     def __init__(self, addr, name):
