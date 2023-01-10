@@ -340,6 +340,8 @@ class CommandGetPartySize(Command):
     def execute(self, ctx, instr):
         ctx.setVar(Script.LASTRESULT, db.getPartySize())
         Command.execute(self, ctx, instr)
+    def explore(self, open_ctxs, conditionals, ctx, instr):
+        Command.execute(self, ctx, instr)
 
 class CommandHideSprite(Command):
     def execute(self, ctx, instr):
