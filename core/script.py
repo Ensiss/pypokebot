@@ -436,6 +436,21 @@ class CommandPrepareMsg(Command):
             return self.str_fmt % instr.args
         return "preparemsg \"%s\"" % self.unrolledString(instr.args[0])
 
+class CommandYesNoBox(Command):
+    def execute(self, open_ctxs, ctx, instr):
+        # Yes in another context
+        yes_ctx = ctx.copy()
+        yes_ctx.setVar(Script.LASTRESULT, 1)
+        yes_ctx.choices.append(0)
+        open_ctxs.append(yes_ctx)
+
+        # No in current context
+        ctx.setVar(Script.LASTRESULT, 0)
+        ctx.choices.append(1)
+        Command.execute(self, open_ctxs, ctx, instr)
+    def explore(self, open_ctxs, conditionals, ctx, instr):
+        Command.execute(self, open_ctxs, ctx, instr)
+
 class CommandCheckAttack(Command):
     def format(self, instr):
         return "checkattack \"%s\"" % db.moves[instr.args[0]].name
@@ -561,6 +576,7 @@ class Script:
                 self.inputs = set()
                 self.outputs = set()
                 self.do_exit = False
+                self.choices = []
                 self.parent = parent
                 if parent:
                     self.pc = parent.addr
@@ -579,6 +595,7 @@ class Script:
                 self.inputs = other.inputs.copy()
                 self.outputs = other.outputs.copy()
                 self.do_exit = other.do_exit
+                self.choices = other.choices.copy()
                 self.parent = other.parent
 
         def copy(self):
