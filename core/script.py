@@ -68,7 +68,7 @@ class Command:
         """
         return self.fmt
 
-    def execute(self, ctx, instr):
+    def execute(self, open_ctxs, ctx, instr):
         """
         Called to simulate script execution and update the context.
         Should ideallly update the current context exactly as the in-game script.
@@ -81,21 +81,21 @@ class Command:
         Called to explore all script branches and track inputs and outputs.
         This should be different from execute only for branching instructions.
         """
-        return self.execute(ctx, instr)
+        return self.execute(open_ctxs, ctx, instr)
 
 class CommandEnd(Command):
-    def execute(self, ctx, instr):
+    def execute(self, open_ctxs, ctx, instr):
         ctx.do_exit = True
 
 class CommandReturn(Command):
-    def execute(self, ctx, instr):
+    def execute(self, open_ctxs, ctx, instr):
         if len(ctx.stack) == 0:
             ctx.do_exit = True
             return
         ctx.pc = ctx.stack.pop()
 
 class CommandCall(Command):
-    def execute(self, ctx, instr):
+    def execute(self, open_ctxs, ctx, instr):
         ctx.stack.append(instr.next_addr)
         ctx.pc = instr.args[0]
 
@@ -103,7 +103,7 @@ class CommandCall(Command):
         jumps.append(instr.args[-1])
 
 class CommandGoto(Command):
-    def execute(self, ctx, instr):
+    def execute(self, open_ctxs, ctx, instr):
         ctx.pc = instr.args[0]
 
     def inPrint(self, jumps, instr):
@@ -139,21 +139,21 @@ class CommandIf(Command):
                 ctx.do_exit = True
 
 class CommandIfJump(CommandIf):
-    def execute(self, ctx, instr):
+    def execute(self, open_ctxs, ctx, instr):
         if instr.args[0] > 5:
             print("IfJump error: no operator %d" % instr.args[0])
             return
         if Command.cmd_op[instr.args[0]](ctx.cmp1, ctx.cmp2):
             ctx.pc = instr.args[1]
         else:
-            Command.execute(self, ctx, instr)
+            Command.execute(self, open_ctxs, ctx, instr)
 
     def exploreTrue(self, conditionals, ctx, instr):
         ctx.pc = instr.args[1]
         conditionals[instr.addr] |= Script.Cond.TRUE
 
 class CommandIfCall(CommandIf):
-    def execute(self, ctx, instr):
+    def execute(self, open_ctxs, ctx, instr):
         if instr.args[0] > 5:
             print("IfCall error: no operator %d" % instr.args[0])
             return
@@ -161,7 +161,7 @@ class CommandIfCall(CommandIf):
             ctx.stack.append(instr.next_addr)
             ctx.pc = instr.args[1]
         else:
-            Command.execute(self, ctx, instr)
+            Command.execute(self, open_ctxs, ctx, instr)
 
     def exploreTrue(self, conditionals, ctx, instr):
         ctx.stack.append(instr.next_addr)
@@ -177,13 +177,13 @@ class CommandStd(Command):
 class CommandCallStd(CommandStd):
     def format(self, instr):
         return  "call std%#x(0x%08x)" % (instr.args[0], self.funcAddr(instr.args[0]))
-    def execute(self, ctx, instr):
+    def execute(self, open_ctxs, ctx, instr):
         ctx.stack.append(instr.next_addr)
         ctx.pc = self.funcAddr(instr.args[0])
 class CommandGotoStd(CommandStd):
     def format(self, instr):
         return  "goto std%#x(0x%08x)" % (instr.args[0], self.funcAddr(instr.args[0]))
-    def execute(self, ctx, instr):
+    def execute(self, open_ctxs, ctx, instr):
         ctx.pc = self.funcAddr(instr.args[0])
 
 class CommandIfStd(CommandStd):
@@ -214,21 +214,21 @@ class CommandIfStd(CommandStd):
                 ctx.do_exit = True
 
 class CommandIfJumpStd(CommandIfStd):
-    def execute(self, ctx, instr):
+    def execute(self, open_ctxs, ctx, instr):
         if instr.args[0] > 5:
             print("IfJumpStd error: no operator %d" % instr.args[0])
             return
         if Command.cmd_op[instr.args[0]](ctx.cmp1, ctx.cmp2):
             ctx.pc = self.funcAddr(instr.args[1])
         else:
-            Command.execute(self, ctx, instr)
+            Command.execute(self, open_ctxs, ctx, instr)
 
     def exploreTrue(self, conditionals, ctx, instr):
         ctx.pc = self.funcAddr(instr.args[1])
         conditionals[instr.addr] |= Script.Cond.TRUE
 
 class CommandIfCallStd(CommandIfStd):
-    def execute(self, ctx, instr):
+    def execute(self, open_ctxs, ctx, instr):
         if instr.args[0] > 5:
             print("IfCallStd error: no operator %d" % instr.args[0])
             return
@@ -236,7 +236,7 @@ class CommandIfCallStd(CommandIfStd):
             ctx.stack.append(instr.next_addr)
             ctx.pc = self.funcAddr(instr.args[1])
         else:
-            Command.execute(self, ctx, instr)
+            Command.execute(self, open_ctxs, ctx, instr)
 
     def exploreTrue(self, conditionals, ctx, instr):
         ctx.stack.append(instr.next_addr)
@@ -246,108 +246,108 @@ class CommandIfCallStd(CommandIfStd):
 class CommandLoadPointer(Command):
     def format(self, instr):
         return "loadpointer %d \"%s\"" % (instr.args[0], self.unrolledString(instr.args[1]))
-    def execute(self, ctx, instr):
+    def execute(self, open_ctxs, ctx, instr):
         ctx.setBank(instr.args[0], instr.args[1])
-        Command.execute(self, ctx, instr)
+        Command.execute(self, open_ctxs, ctx, instr)
 
 class CommandSetByte(Command):
-    def execute(self, ctx, instr):
+    def execute(self, open_ctxs, ctx, instr):
         ctx.setBank(instr.args[0], instr.args[1])
-        Command.execute(self, ctx, instr)
+        Command.execute(self, open_ctxs, ctx, instr)
 
 class CommandLoadByteFromPtr(Command):
-    def execute(self, ctx, instr):
+    def execute(self, open_ctxs, ctx, instr):
         ctx.setBank(instr.args[0], mem.readU8(instr.args[1]))
-        Command.execute(self, ctx, instr)
+        Command.execute(self, open_ctxs, ctx, instr)
 
 class CommandCopyScriptBanks(Command):
-    def execute(self, ctx, instr):
+    def execute(self, open_ctxs, ctx, instr):
         ctx.setBank(instr.args[0], ctx.getBank(instr.args[1]))
-        Command.execute(self, ctx, instr)
+        Command.execute(self, open_ctxs, ctx, instr)
 
 class CommandSetVar(Command):
-    def execute(self, ctx, instr):
+    def execute(self, open_ctxs, ctx, instr):
         ctx.setVar(instr.args[0], instr.args[1])
-        Command.execute(self, ctx, instr)
+        Command.execute(self, open_ctxs, ctx, instr)
 
 class CommandAddVar(Command):
-    def execute(self, ctx, instr):
+    def execute(self, open_ctxs, ctx, instr):
         ctx.setVar(instr.args[0], ctx.getVar(instr.args[0]) + instr.args[1])
-        Command.execute(self, ctx, instr)
+        Command.execute(self, open_ctxs, ctx, instr)
 
 class CommandSubVar(Command):
-    def execute(self, ctx, instr):
+    def execute(self, open_ctxs, ctx, instr):
         ctx.setVar(instr.args[0], ctx.getVar(instr.args[0]) - instr.args[1])
-        Command.execute(self, ctx, instr)
+        Command.execute(self, open_ctxs, ctx, instr)
 
 class CommandCopyVar(Command):
-    def execute(self, ctx, instr):
+    def execute(self, open_ctxs, ctx, instr):
         ctx.setVar(instr.args[0], ctx.getVar(instr.args[1]))
-        Command.execute(self, ctx, instr)
+        Command.execute(self, open_ctxs, ctx, instr)
 
 class CommandCopyVarIfNotZero(Command):
-    def execute(self, ctx, instr):
+    def execute(self, open_ctxs, ctx, instr):
         if Script.isVar(instr.args[1]):
-            CommandCopyVar.execute(self, ctx, instr)
+            CommandCopyVar.execute(self, open_ctxs, ctx, instr)
         else:
-            CommandSetVar.execute(self, ctx, instr)
+            CommandSetVar.execute(self, open_ctxs, ctx, instr)
 
 class CommandCompareBanks(Command):
-    def execute(self, ctx, instr):
+    def execute(self, open_ctxs, ctx, instr):
         ctx.compare8(ctx.getBank(instr.args[0]), ctx.getBank(instr.args[1]))
-        Command.execute(self, ctx, instr)
+        Command.execute(self, open_ctxs, ctx, instr)
 
 class CommandCompareBankToByte(Command):
-    def execute(self, ctx, instr):
+    def execute(self, open_ctxs, ctx, instr):
         ctx.compare8(ctx.getBank(instr.args[0]), instr.args[1])
-        Command.execute(self, ctx, instr)
+        Command.execute(self, open_ctxs, ctx, instr)
 
 class CommandCompareBankToFarByte(Command):
-    def execute(self, ctx, instr):
+    def execute(self, open_ctxs, ctx, instr):
         ctx.compare8(ctx.getBank(instr.args[0]), mem.readU8(instr.args[1]))
-        Command.execute(self, ctx, instr)
+        Command.execute(self, open_ctxs, ctx, instr)
 
 class CommandCompareFarByteToBank(Command):
-    def execute(self, ctx, instr):
+    def execute(self, open_ctxs, ctx, instr):
         ctx.compare8(mem.readU8(instr.args[0]), ctx.getBank(instr.args[1]))
-        Command.execute(self, ctx, instr)
+        Command.execute(self, open_ctxs, ctx, instr)
 
 class CommandCompareFarByteToByte(Command):
-    def execute(self, ctx, instr):
+    def execute(self, open_ctxs, ctx, instr):
         ctx.compare8(mem.readU8(instr.args[0]), instr.args[1])
-        Command.execute(self, ctx, instr)
+        Command.execute(self, open_ctxs, ctx, instr)
 
 class CommandCompareFarBytes(Command):
-    def execute(self, ctx, instr):
+    def execute(self, open_ctxs, ctx, instr):
         ctx.compare8(mem.readU8(instr.args[0]), mem.readU8(instr.args[1]))
-        Command.execute(self, ctx, instr)
+        Command.execute(self, open_ctxs, ctx, instr)
 
 class CommandCompare(Command):
-    def execute(self, ctx, instr):
+    def execute(self, open_ctxs, ctx, instr):
         ctx.compare(ctx.getVar(instr.args[0]), instr.args[1])
-        Command.execute(self, ctx, instr)
+        Command.execute(self, open_ctxs, ctx, instr)
 
 class CommandCompareVars(Command):
-    def execute(self, ctx, instr):
+    def execute(self, open_ctxs, ctx, instr):
         ctx.compare(ctx.getVar(instr.args[0]), ctx.getVar(instr.args[1]))
-        Command.execute(self, ctx, instr)
+        Command.execute(self, open_ctxs, ctx, instr)
 
 class CommandBufferString(Command):
     def format(self, instr):
         return "bufferstring %d \"%s\"" % (instr.args[0], self.unrolledString(instr.args[1]))
 
 class CommandGetPartySize(Command):
-    def execute(self, ctx, instr):
+    def execute(self, open_ctxs, ctx, instr):
         ctx.setVar(Script.LASTRESULT, db.getPartySize())
-        Command.execute(self, ctx, instr)
+        Command.execute(self, open_ctxs, ctx, instr)
     def explore(self, open_ctxs, conditionals, ctx, instr):
-        Command.execute(self, ctx, instr)
+        Command.execute(self, open_ctxs, ctx, instr)
 
 class CommandHideSprite(Command):
-    def execute(self, ctx, instr):
+    def execute(self, open_ctxs, ctx, instr):
         local_id = ctx.getVar(instr.args[0]) # Local ids are 1-indexed
         if local_id == 0xFF: # Player id
-            return Command.execute(self, ctx, instr)
+            return Command.execute(self, open_ctxs, ctx, instr)
         if len(instr.args) == 1:
             bank_id = ctx.parent.bank_id
             map_id = ctx.parent.map_id
@@ -357,13 +357,13 @@ class CommandHideSprite(Command):
         vis_flag = db.banks[bank_id][map_id].persons[local_id-1].idx
         if vis_flag != 0:
             ctx.setFlag(vis_flag, 1)
-        Command.execute(self, ctx, instr)
+        Command.execute(self, open_ctxs, ctx, instr)
 
 class CommandShowSprite(Command):
-    def execute(self, ctx, instr):
+    def execute(self, open_ctxs, ctx, instr):
         local_id = ctx.getVar(instr.args[0]) # Local ids are 1-indexed
         if local_id == 0xFF: # Player id
-            return Command.execute(self, ctx, instr)
+            return Command.execute(self, open_ctxs, ctx, instr)
         if len(instr.args) == 1:
             bank_id = ctx.parent.bank_id
             map_id = ctx.parent.map_id
@@ -373,7 +373,7 @@ class CommandShowSprite(Command):
         vis_flag = db.banks[bank_id][map_id].persons[local_id-1].idx
         if vis_flag != 0:
             ctx.setFlag(vis_flag, 0)
-        Command.execute(self, ctx, instr)
+        Command.execute(self, open_ctxs, ctx, instr)
 
 class CommandTrainerBattle(Command):
     def format(self, instr):
@@ -415,20 +415,20 @@ class CommandTrainerBattle(Command):
             jump_ctx = ctx.copy()
             jump_ctx.pc = instr.args[5]
             open_ctxs.append(jump_ctx)
-        Command.execute(self, ctx, instr)
+        Command.execute(self, open_ctxs, ctx, instr)
 
 class CommandCheckTrainerFlag(Command):
-    def execute(self, ctx, instr):
+    def execute(self, open_ctxs, ctx, instr):
         ctx.compare(ctx.getFlag(ctx.getVar(instr.args[0]) + 0x500), 1)
-        Command.execute(self, ctx, instr)
+        Command.execute(self, open_ctxs, ctx, instr)
 class CommandSetTrainerFlag(Command):
-    def execute(self, ctx, instr):
+    def execute(self, open_ctxs, ctx, instr):
         ctx.setFlag(ctx.getVar(instr.args[0]) + 0x500, 1)
-        Command.execute(self, ctx, instr)
+        Command.execute(self, open_ctxs, ctx, instr)
 class CommandClearTrainerFlag(Command):
-    def execute(self, ctx, instr):
+    def execute(self, open_ctxs, ctx, instr):
         ctx.setFlag(ctx.getVar(instr.args[0]) + 0x500, 0)
-        Command.execute(self, ctx, instr)
+        Command.execute(self, open_ctxs, ctx, instr)
 
 class CommandPrepareMsg(Command):
     def format(self, instr):
@@ -441,23 +441,23 @@ class CommandCheckAttack(Command):
         return "checkattack \"%s\"" % db.moves[instr.args[0]].name
 
 class CommandSetFlag(Command):
-    def execute(self, ctx, instr):
+    def execute(self, open_ctxs, ctx, instr):
         ctx.setFlag(instr.args[0], 1)
-        Command.execute(self, ctx, instr)
+        Command.execute(self, open_ctxs, ctx, instr)
 class CommandClearFlag(Command):
-    def execute(self, ctx, instr):
+    def execute(self, open_ctxs, ctx, instr):
         ctx.setFlag(instr.args[0], 0)
-        Command.execute(self, ctx, instr)
+        Command.execute(self, open_ctxs, ctx, instr)
 class CommandCheckFlag(Command):
-    def execute(self, ctx, instr):
+    def execute(self, open_ctxs, ctx, instr):
         ctx.compare(ctx.getFlag(instr.args[0]), 1)
-        Command.execute(self, ctx, instr)
+        Command.execute(self, open_ctxs, ctx, instr)
 
 class CommandResetVars(Command):
-    def execute(self, ctx, instr):
+    def execute(self, open_ctxs, ctx, instr):
         for v in range(0x8000, 0x8003):
             ctx.setVar(v, 0)
-        Command.execute(self, ctx, instr)
+        Command.execute(self, open_ctxs, ctx, instr)
 
 class Instruction:
     def __init__(self, addr):
