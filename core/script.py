@@ -936,7 +936,7 @@ cmds = [
     Command(0x6B, "releaseall", ""),
     Command(0x6C, "release", ""),
     Command(0x6D, "waitkeypress", ""),
-    Command(0x6E, "yesnobox %#x %#x", "byte byte"),
+    CommandYesNoBox(0x6E, "yesnobox %#x %#x", "byte byte"),
     Command(0x6F, "multichoice %#x %#x %#x %#x", "byte byte byte byte"),
     Command(0x70, "multichoicedefault %#x %#x %#x %#x %#x", "byte byte byte byte byte"),
     Command(0x71, "multichoicegrid %#x %#x %#x %#x %#x", "byte byte byte byte byte"),
