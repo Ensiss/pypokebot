@@ -451,6 +451,38 @@ class CommandYesNoBox(Command):
     def explore(self, open_ctxs, conditionals, ctx, instr):
         Command.execute(self, open_ctxs, ctx, instr)
 
+class CommandMultichoice(Command):
+    def execute(self, open_ctxs, ctx, instr):
+        mchoice = db.multi_choices[instr.args[2]]
+        nchoices = mchoice.nb_choices
+
+        # B-button back out
+        if instr.args[-1] == 0:
+            tmp_ctx = ctx.copy()
+            open_ctxs.append(tmp_ctx)
+            tmp_ctx.choices.append(0x7f)
+            tmp_ctx.setVar(Script.LASTRESULT, 0x7f)
+        # One context per choice, last choice in current context
+        for i in range(nchoices):
+            if i == nchoices-1:
+                tmp_ctx = ctx
+            else:
+                tmp_ctx = ctx.copy()
+                open_ctxs.append(tmp_ctx)
+            tmp_ctx.choices.append(i)
+            tmp_ctx.setVar(Script.LASTRESULT, i)
+        Command.execute(self, open_ctxs, ctx, instr)
+    def explore(self, open_ctxs, conditionals, ctx, instr):
+        Command.execute(self, open_ctxs, ctx, instr)
+    def format(self, instr):
+        mchoice = db.multi_choices[instr.args[2]]
+        s = "multichoice x=%d,y=%d id%#x(%s)" % (
+            instr.args[0], instr.args[1], instr.args[2],
+            "/".join(mchoice.choices))
+        for x in instr.args[3:]:
+            s += " %#x" % x
+        return s
+
 class CommandCheckAttack(Command):
     def format(self, instr):
         return "checkattack \"%s\"" % db.moves[instr.args[0]].name
@@ -937,9 +969,9 @@ cmds = [
     Command(0x6C, "release", ""),
     Command(0x6D, "waitkeypress", ""),
     CommandYesNoBox(0x6E, "yesnobox %#x %#x", "byte byte"),
-    Command(0x6F, "multichoice %#x %#x %#x %#x", "byte byte byte byte"),
-    Command(0x70, "multichoicedefault %#x %#x %#x %#x %#x", "byte byte byte byte byte"),
-    Command(0x71, "multichoicegrid %#x %#x %#x %#x %#x", "byte byte byte byte byte"),
+    CommandMultichoice(0x6F, "multichoice %#x %#x %#x %#x", "byte byte byte byte"),
+    CommandMultichoice(0x70, "multichoicedefault %#x %#x %#x %#x %#x", "byte byte byte byte byte"),
+    CommandMultichoice(0x71, "multichoicegrid %#x %#x %#x %#x %#x", "byte byte byte byte byte"),
     Command(0x72, "drawbox(nop)", ""),
     Command(0x73, "erasebox (l=%d,t=%d,r=%d,b=%d)", "byte byte byte byte"),
     Command(0x74, "drawboxtext(nop)", ""),
