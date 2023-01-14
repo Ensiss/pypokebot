@@ -343,6 +343,56 @@ class CommandGetPartySize(Command):
     def explore(self, open_ctxs, conditionals, ctx, instr):
         Command.execute(self, open_ctxs, ctx, instr)
 
+class CommandCheckItemRoom(Command):
+    def checkHasSpace(self, item_id, count):
+        if item_id == 0 or db.items[item_id].pocket == 0:
+            return False
+        item = db.items[item_id]
+        pocket = db.bag[item.pocket]
+        for inbag_item in pocket:
+            if inbag_item.index == item_id:
+                return inbag_item.quantity + count <= 999
+        # If there are still empty pockets, return True
+        return len(pocket) < pocket.capacity
+
+    def execute(self, open_ctxs, ctx, instr):
+        item_id = ctx.getVar(instr.args[0])
+        quantity = ctx.getVar(instr.args[1])
+        ctx.setVar(Script.LASTRESULT, self.checkHasSpace(item_id, quantity))
+        Command.execute(self, open_ctxs, ctx, instr)
+
+    def explore(self, open_ctxs, conditionals, ctx, instr):
+        Command.execute(self, open_ctxs, ctx, instr)
+
+class CommandCheckItem(Command):
+    def hasItem(self, item_id, count):
+        if item_id == 0 or db.items[item_id].pocket == 0:
+            return False
+        item = db.items[item_id]
+        pocket = db.bag[item.pocket]
+        for inbag_item in pocket:
+            if inbag_item.index == item_id:
+                return inbag_item.quantity >= count
+        return False
+
+    def execute(self, open_ctxs, ctx, instr):
+        item_id = ctx.getVar(instr.args[0])
+        quantity = ctx.getVar(instr.args[1])
+        ctx.setVar(Script.LASTRESULT, self.hasItem(item_id, quantity))
+        Command.execute(self, open_ctxs, ctx, instr)
+
+    def explore(self, open_ctxs, conditionals, ctx, instr):
+        Command.execute(self, open_ctxs, ctx, instr)
+
+class CommandCheckItemType(Command):
+    def execute(self, open_ctxs, ctx, instr):
+        item_id = ctx.getVar(instr.args[0])
+        ctx.setVar(Script.LASTRESULT, db.items[item_id].pocket)
+        Command.execute(self, open_ctxs, ctx, instr)
+
+    def explore(self, open_ctxs, conditionals, ctx, instr):
+        Command.execute(self, open_ctxs, ctx, instr)
+
 class CommandHideSprite(Command):
     def execute(self, open_ctxs, ctx, instr):
         local_id = ctx.getVar(instr.args[0]) # Local ids are 1-indexed
@@ -940,9 +990,9 @@ cmds = [
     CommandGetPartySize(0x43, "getpartysize", ""),
     Command(0x44, "additem %#x %#x", "word/var byte/var"),
     Command(0x45, "removeitem %#x %#x", "word/var byte/var"),
-    Command(0x46, "checkitemroom %#x %#x", "word/var byte/var"),
-    Command(0x47, "checkitem %#x %#x", "word/var byte/var"),
-    Command(0x48, "checkitemtype %#x", "word/var"),
+    CommandCheckItemRoom(0x46, "checkitemroom %#x %#x", "word/var byte/var"),
+    CommandCheckItem(0x47, "checkitem %#x %#x", "word/var byte/var"),
+    CommandCheckItemType(0x48, "checkitemtype %#x", "word/var"),
     Command(0x49, "addpcitem %#x %#x", "word/var word/var"),
     Command(0x4A, "checkpcitem %#x %#x", "word/var word/var"),
     Command(0x4B, "adddecoration %#x", "word/var"),
