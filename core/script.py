@@ -486,6 +486,18 @@ class CommandMultichoice(Command):
 class CommandCheckAttack(Command):
     def format(self, instr):
         return "checkattack \"%s\"" % db.moves[instr.args[0]].name
+    def execute(self, open_ctxs, ctx, instr):
+        out = 0x6
+        for i, p in enumerate(db.pteam):
+            if p.growth.species_idx == 0:
+                break
+            if instr.args[0] in p.attacks.move_ids:
+                out = i
+                break
+        ctx.setVar(Script.LASTRESULT, out)
+        Command.execute(self, open_ctxs, ctx, instr)
+    def explore(self, open_ctxs, conditionals, ctx, instr):
+        Command.execute(self, open_ctxs, ctx, instr)
 
 class CommandSetFlag(Command):
     def execute(self, open_ctxs, ctx, instr):
