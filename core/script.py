@@ -336,6 +336,13 @@ class CommandBufferString(Command):
     def format(self, instr):
         return "bufferstring %d \"%s\"" % (instr.args[0], self.unrolledString(instr.args[1]))
 
+class CommandCheckGender(Command):
+    def execute(self, open_ctxs, conditionals, ctx, instr):
+        ctx.setVar(Script.LASTRESULT, db.player.gender)
+        Command.execute(self, open_ctxs, conditionals, ctx, instr)
+    def explore(self, open_ctxs, conditionals, ctx, instr):
+        Command.execute(self, open_ctxs, conditionals, ctx, instr)
+
 class CommandGetPartySize(Command):
     def execute(self, open_ctxs, conditionals, ctx, instr):
         ctx.setVar(Script.LASTRESULT, db.getPartySize())
@@ -1115,7 +1122,7 @@ cmds = [
     Command(0x9D, "setanimation %#x %#x", "byte word/var"),
     Command(0x9E, "waitanimation %#x", "word"),
     Command(0x9F, "sethealingplace %#x", "word"),
-    Command(0xA0, "checkgender", ""),
+    CommandCheckGender(0xA0, "checkgender", ""),
     Command(0xA1, "cry %#x %#x", "word/var word"),
     Command(0xA2, "setmaptile %#x %#x %#x %#x", "word word word word"),
     Command(0xA3, "resetweather", ""),
