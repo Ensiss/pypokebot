@@ -16,6 +16,6 @@ class Player(utils.AutoUpdater):
          self.trainer_id) = mem.unpack(saveblock2_offset, "8S2BH")
         encryption_key = mem.readU32(saveblock2_offset + 0xF20)
         self.money = mem.readU32(saveblock1_offset + 0x290) ^ encryption_key
-        self.coins = mem.readU16(saveblock1_offset + 0x294) ^ encryption_key
+        self.coins = mem.readU16(saveblock1_offset + 0x294) ^ (encryption_key & 0xFFFF)
         self.saveblock1_offset = saveblock1_offset
         self.saveblock2_offset = saveblock2_offset
