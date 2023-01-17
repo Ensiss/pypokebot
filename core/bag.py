@@ -16,7 +16,7 @@ class Bag(utils.AutoUpdater, list):
         if ptr == 0:
             self += [[]] * 5
         else:
-            self.key = mem.readU32(ptr + 0x0F20) & 0xFFFF;
+            self.key = mem.readU16(ptr + 0x0F20)
             pocket_sz = struct.calcsize(Pocket.fmt)
             for i in range(5):
                 self.append(Pocket(self, 0x0203988C + i * pocket_sz))
