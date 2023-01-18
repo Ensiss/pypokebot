@@ -336,11 +336,27 @@ class CommandBufferString(Command):
     def format(self, instr):
         return "bufferstring %d \"%s\"" % (instr.args[0], self.unrolledString(instr.args[1]))
 
+class CommandCheckMoney(Command):
+    def execute(self, open_ctxs, conditionals, ctx, instr):
+        if not instr.args[1]:
+            ctx.setVar(Script.LASTRESULT, db.player.money >= instr.args[0])
+        Command.execute(self, open_ctxs, conditionals, ctx, instr)
+    def explore(self, open_ctxs, conditionals, ctx, instr):
+        Command.execute(self, open_ctxs, conditionals, ctx, instr)
+
 class CommandCheckGender(Command):
     def execute(self, open_ctxs, conditionals, ctx, instr):
         ctx.setVar(Script.LASTRESULT, db.player.gender)
         Command.execute(self, open_ctxs, conditionals, ctx, instr)
     def explore(self, open_ctxs, conditionals, ctx, instr):
+        Command.execute(self, open_ctxs, conditionals, ctx, instr)
+
+class CommandCheckCoins(Command):
+    def execute(self, open_ctxs, conditionals, ctx, instr):
+        ctx.setVar(instr.args[0], db.player.coins)
+        Command.execute(self, open_ctxs, conditionals, ctx, instr)
+    def explore(self, open_ctxs, conditionals, ctx, instr):
+        ctx.setVar(instr.args[0], 0)
         Command.execute(self, open_ctxs, conditionals, ctx, instr)
 
 class CommandGetPartySize(Command):
@@ -1108,7 +1124,7 @@ cmds = [
     Command(0x8F, "random %#x", "word/var"),
     Command(0x90, "givemoney %#x %#x", "dword byte"),
     Command(0x91, "paymoney %#x %#x", "dword byte"),
-    Command(0x92, "checkmoney %#x %#x", "dword byte"),
+    CommandCheckMoney(0x92, "checkmoney >=%d, ignore=%d", "dword byte"),
     Command(0x93, "showmoney %#x %#x", "byte byte"),
     Command(0x94, "hidemoney %#x %#x", "byte byte"),
     Command(0x95, "updatemoney %#x %#x", "byte byte"),
@@ -1141,7 +1157,7 @@ cmds = [
     Command(0xB0, "setdoorclosed %#x %#x", "word word"),
     Command(0xB1, "addelevmenuitem(nop)", ""),
     Command(0xB2, "showelevmenu(nop)", ""),
-    Command(0xB3, "checkcoins %#x", "word/var"), # TODO: implement actual coin check
+    CommandCheckCoins(0xB3, "checkcoins %#x", "word/var"),
     Command(0xB4, "addcoins %#x", "word/var"),
     Command(0xB5, "removecoins %#x", "word/var"),
     Command(0xB6, "setwildbattle %#x %#x %#x", "word byte word"),
