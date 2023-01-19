@@ -697,7 +697,7 @@ class Script:
         return Script.TEMP_OFFSET <= x < Script.TEMP_OFFSET + Script.TEMP_COUNT
 
     class Context:
-        def __init__(self, other=None, parent=None):
+        def __init__(self, other=None):
             if other is None:
                 ptr = mem.readU32(0x03005008)
                 self.flags = np.frombuffer(mem.bufferFromAddr(ptr + 0xEE0)[:Script.FLAG_COUNT >> 3], dtype=np.uint8).copy()
@@ -712,11 +712,7 @@ class Script:
                 self.outputs = set()
                 self.do_exit = False
                 self.choices = []
-                self.parent = parent
-                if parent:
-                    self.pc = parent.addr
-                    if parent.type == Script.Type.PERSON:
-                        self.setVar(Script.LASTTALKED, parent.idx+1, track=False)
+                self.parent = None
             else:
                 self.flags = other.flags.copy()
                 self.spcflags = other.spcflags.copy()
@@ -732,6 +728,12 @@ class Script:
                 self.do_exit = other.do_exit
                 self.choices = other.choices.copy()
                 self.parent = other.parent
+
+        def initFor(self, parent):
+            self.parent = parent
+            self.pc = parent.addr
+            if parent.type == Script.Type.PERSON:
+                self.setVar(Script.LASTTALKED, parent.idx+1, track=False)
 
         def copy(self):
             return Script.Context(self)
@@ -950,8 +952,10 @@ class Script:
             subPrint(addr)
 
     def explore(self):
+        context = Script.Context()
+        context.initFor(self)
         conditionals = {}
-        open_ctxs = [Script.Context(parent = self)]
+        open_ctxs = [context]
         closed_ctxs = []
         while len(open_ctxs) > 0:
             ctx = open_ctxs.pop(0)
@@ -963,9 +967,12 @@ class Script:
                     break
         return closed_ctxs
 
-    def execute(self):
+    def execute(self, context=None):
+        if context is None:
+            context = Script.Context()
+        context.initFor(self)
         conditionals = {}
-        open_ctxs = [Script.Context(parent = self)]
+        open_ctxs = [context]
         closed_ctxs = []
         while len(open_ctxs) > 0:
             ctx = open_ctxs.pop(0)
