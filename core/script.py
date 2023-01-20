@@ -287,7 +287,7 @@ class CommandCopyVar(Command):
 
 class CommandCopyVarIfNotZero(Command):
     def execute(self, open_ctxs, conditionals, ctx, instr):
-        if Script.isVar(instr.args[1]):
+        if Script.isVar(instr.args[1]) or Script.isTemp(instr.args[1]):
             CommandCopyVar.execute(self, open_ctxs, conditionals, ctx, instr)
         else:
             CommandSetVar.execute(self, open_ctxs, conditionals, ctx, instr)
