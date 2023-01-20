@@ -373,7 +373,7 @@ class CommandCheckItemRoom(Command):
         item = db.items[item_id]
         pocket = db.bag[item.pocket]
         for inbag_item in pocket:
-            if inbag_item.index == item_id:
+            if inbag_item.idx == item_id:
                 return inbag_item.quantity + count <= 999
         # If there are still empty pockets, return True
         return len(pocket) < pocket.capacity
@@ -394,7 +394,7 @@ class CommandCheckItem(Command):
         item = db.items[item_id]
         pocket = db.bag[item.pocket]
         for inbag_item in pocket:
-            if inbag_item.index == item_id:
+            if inbag_item.idx == item_id:
                 return inbag_item.quantity >= count
         return False
 
