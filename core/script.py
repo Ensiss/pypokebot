@@ -68,6 +68,18 @@ class Command:
         """
         return self.fmt
 
+    def checkPreviousVisit(self, ctx, conditionals):
+        """
+        Check if the current pc+call stack was already visited.
+        Exit if the point was visited, register a new visit otherwise.
+        """
+        cs = ctx.getCallStack()
+        if cs in conditionals:
+            ctx.do_exit = True
+            return True
+        conditionals[cs] = Script.Cond.TRUE
+        return False
+
     def execute(self, open_ctxs, conditionals, ctx, instr):
         """
         Called to simulate script execution and update the context.
@@ -143,6 +155,8 @@ class CommandIfJump(CommandIf):
         if instr.args[0] > 5:
             print("IfJump error: no operator %d" % instr.args[0])
             return
+        if self.checkPreviousVisit(ctx, conditionals):
+            return
         if Command.cmd_op[instr.args[0]](ctx.cmp1, ctx.cmp2):
             ctx.pc = instr.args[1]
         else:
@@ -156,6 +170,8 @@ class CommandIfCall(CommandIf):
     def execute(self, open_ctxs, conditionals, ctx, instr):
         if instr.args[0] > 5:
             print("IfCall error: no operator %d" % instr.args[0])
+            return
+        if self.checkPreviousVisit(ctx, conditionals):
             return
         if Command.cmd_op[instr.args[0]](ctx.cmp1, ctx.cmp2):
             ctx.stack.append(instr.next_addr)
@@ -218,6 +234,8 @@ class CommandIfJumpStd(CommandIfStd):
         if instr.args[0] > 5:
             print("IfJumpStd error: no operator %d" % instr.args[0])
             return
+        if self.checkPreviousVisit(ctx, conditionals):
+            return
         if Command.cmd_op[instr.args[0]](ctx.cmp1, ctx.cmp2):
             ctx.pc = self.funcAddr(instr.args[1])
         else:
@@ -231,6 +249,8 @@ class CommandIfCallStd(CommandIfStd):
     def execute(self, open_ctxs, conditionals, ctx, instr):
         if instr.args[0] > 5:
             print("IfCallStd error: no operator %d" % instr.args[0])
+            return
+        if self.checkPreviousVisit(ctx, conditionals):
             return
         if Command.cmd_op[instr.args[0]](ctx.cmp1, ctx.cmp2):
             ctx.stack.append(instr.next_addr)
@@ -512,12 +532,8 @@ class CommandPrepareMsg(Command):
 class CommandYesNoBox(Command):
     def execute(self, open_ctxs, conditionals, ctx, instr):
         # Only allow passing through once
-        cs = ctx.getCallStack()
-        if cs in conditionals:
-            ctx.do_exit = True
+        if self.checkPreviousVisit(ctx, conditionals):
             return
-        else:
-            conditionals[cs] = Script.Cond.TRUE
 
         # Update pc before forking
         Command.execute(self, open_ctxs, conditionals, ctx, instr)
@@ -536,12 +552,8 @@ class CommandYesNoBox(Command):
 class CommandMultichoice(Command):
     def execute(self, open_ctxs, conditionals, ctx, instr):
         # Only allow passing through once
-        cs = ctx.getCallStack()
-        if cs in conditionals:
-            ctx.do_exit = True
+        if self.checkPreviousVisit(ctx, conditionals):
             return
-        else:
-            conditionals[cs] = Script.Cond.TRUE
 
         mchoice = db.multi_choices[instr.args[2]]
         nchoices = mchoice.nb_choices
