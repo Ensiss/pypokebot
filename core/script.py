@@ -68,12 +68,13 @@ class Command:
         """
         return self.fmt
 
-    def checkPreviousVisit(self, ctx, conditionals):
+    def checkPreviousVisit(self, ctx, conditionals, spec=None):
         """
         Check if the current pc+call stack was already visited.
+        'spec' can be used to differentiate different branches of a conditional
         Exit if the point was visited, register a new visit otherwise.
         """
-        cs = ctx.getCallStack()
+        cs = ctx.getCallStack() + (spec,)
         if cs in conditionals:
             ctx.do_exit = True
             return True
@@ -155,9 +156,10 @@ class CommandIfJump(CommandIf):
         if instr.args[0] > 5:
             print("IfJump error: no operator %d" % instr.args[0])
             return
-        if self.checkPreviousVisit(ctx, conditionals):
+        cond = Command.cmd_op[instr.args[0]](ctx.cmp1, ctx.cmp2)
+        if self.checkPreviousVisit(ctx, conditionals, cond):
             return
-        if Command.cmd_op[instr.args[0]](ctx.cmp1, ctx.cmp2):
+        if cond:
             ctx.pc = instr.args[1]
         else:
             Command.execute(self, open_ctxs, conditionals, ctx, instr)
@@ -171,9 +173,10 @@ class CommandIfCall(CommandIf):
         if instr.args[0] > 5:
             print("IfCall error: no operator %d" % instr.args[0])
             return
-        if self.checkPreviousVisit(ctx, conditionals):
+        cond = Command.cmd_op[instr.args[0]](ctx.cmp1, ctx.cmp2)
+        if self.checkPreviousVisit(ctx, conditionals, cond):
             return
-        if Command.cmd_op[instr.args[0]](ctx.cmp1, ctx.cmp2):
+        if cond:
             ctx.stack.append(instr.next_addr)
             ctx.pc = instr.args[1]
         else:
@@ -234,9 +237,10 @@ class CommandIfJumpStd(CommandIfStd):
         if instr.args[0] > 5:
             print("IfJumpStd error: no operator %d" % instr.args[0])
             return
-        if self.checkPreviousVisit(ctx, conditionals):
+        cond = Command.cmd_op[instr.args[0]](ctx.cmp1, ctx.cmp2)
+        if self.checkPreviousVisit(ctx, conditionals, cond):
             return
-        if Command.cmd_op[instr.args[0]](ctx.cmp1, ctx.cmp2):
+        if cond:
             ctx.pc = self.funcAddr(instr.args[1])
         else:
             Command.execute(self, open_ctxs, conditionals, ctx, instr)
@@ -250,9 +254,10 @@ class CommandIfCallStd(CommandIfStd):
         if instr.args[0] > 5:
             print("IfCallStd error: no operator %d" % instr.args[0])
             return
-        if self.checkPreviousVisit(ctx, conditionals):
+        cond = Command.cmd_op[instr.args[0]](ctx.cmp1, ctx.cmp2)
+        if self.checkPreviousVisit(ctx, conditionals, cond):
             return
-        if Command.cmd_op[instr.args[0]](ctx.cmp1, ctx.cmp2):
+        if cond:
             ctx.stack.append(instr.next_addr)
             ctx.pc = self.funcAddr(instr.args[1])
         else:
