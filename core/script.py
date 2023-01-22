@@ -137,9 +137,8 @@ class CommandIf(Command):
     def explore(self, open_ctxs, conditionals, ctx, instr):
         if instr.addr not in conditionals:
             conditionals[instr.addr] = True
-            jump_ctx = ctx.copy()
+            jump_ctx = ctx.copyTo(open_ctxs)
             self.exploreTrue(conditionals, jump_ctx, instr)
-            open_ctxs.append(jump_ctx)
             self.exploreFalse(conditionals, ctx, instr)
         else:
             ctx.do_exit = True
@@ -209,9 +208,8 @@ class CommandIfStd(CommandStd):
     def explore(self, open_ctxs, conditionals, ctx, instr):
         if instr.addr not in conditionals:
             conditionals[instr.addr] = True
-            jump_ctx = ctx.copy()
+            jump_ctx = ctx.copyTo(open_ctxs)
             self.exploreTrue(conditionals, jump_ctx, instr)
-            open_ctxs.append(jump_ctx)
             self.exploreFalse(conditionals, ctx, instr)
         else:
             ctx.do_exit = True
@@ -492,9 +490,8 @@ class CommandTrainerBattle(Command):
 
     def explore(self, open_ctxs, conditionals, ctx, instr):
         if instr.args[0] == 1 or instr.args[0] == 2:
-            jump_ctx = ctx.copy()
+            jump_ctx = ctx.copyTo(open_ctxs)
             jump_ctx.pc = instr.args[5]
-            open_ctxs.append(jump_ctx)
         Command.execute(self, open_ctxs, conditionals, ctx, instr)
 
 class CommandCheckTrainerFlag(Command):
@@ -525,10 +522,9 @@ class CommandYesNoBox(Command):
         # Update pc before forking
         Command.execute(self, open_ctxs, conditionals, ctx, instr)
         # Yes in another context
-        yes_ctx = ctx.copy()
+        yes_ctx = ctx.copyTo(open_ctxs)
         yes_ctx.setVar(Script.LASTRESULT, 1)
         yes_ctx.choices.append(0)
-        open_ctxs.append(yes_ctx)
 
         # No in current context
         ctx.setVar(Script.LASTRESULT, 0)
@@ -549,8 +545,7 @@ class CommandMultichoice(Command):
         Command.execute(self, open_ctxs, conditionals, ctx, instr)
         # B-button back out
         if instr.args[-1] == 0:
-            tmp_ctx = ctx.copy()
-            open_ctxs.append(tmp_ctx)
+            tmp_ctx = ctx.copyTo(open_ctxs)
             tmp_ctx.choices.append(0x7f)
             tmp_ctx.setVar(Script.LASTRESULT, 0x7f)
         # One context per choice, last choice in current context
@@ -558,8 +553,7 @@ class CommandMultichoice(Command):
             if i == nchoices-1:
                 tmp_ctx = ctx
             else:
-                tmp_ctx = ctx.copy()
-                open_ctxs.append(tmp_ctx)
+                tmp_ctx = ctx.copyTo(open_ctxs)
             tmp_ctx.choices.append(i)
             tmp_ctx.setVar(Script.LASTRESULT, i)
     def explore(self, open_ctxs, conditionals, ctx, instr):
@@ -730,6 +724,10 @@ class Script:
 
         def copy(self):
             return Script.Context(self)
+        def copyTo(self, open_ctxs):
+            other = self.copy()
+            open_ctxs.append(other)
+            return other
 
         def getCallStack(self):
             return tuple(self.stack + [self.pc])
