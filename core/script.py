@@ -78,7 +78,7 @@ class Command:
         if cs in conditionals:
             ctx.do_exit = True
             return True
-        conditionals[cs] = Script.Cond.TRUE
+        conditionals[cs] = True
         return False
 
     def execute(self, open_ctxs, conditionals, ctx, instr):
@@ -133,23 +133,16 @@ class CommandIf(Command):
 
     def exploreFalse(self, conditionals, ctx, instr):
         ctx.pc = instr.next_addr
-        conditionals[instr.addr] |= Script.Cond.FALSE
 
     def explore(self, open_ctxs, conditionals, ctx, instr):
-        if instr.addr not in conditionals or conditionals[instr.addr] == Script.Cond.NONE:
-            conditionals[instr.addr] = Script.Cond.NONE
+        if instr.addr not in conditionals:
+            conditionals[instr.addr] = True
             jump_ctx = ctx.copy()
             self.exploreTrue(conditionals, jump_ctx, instr)
             open_ctxs.append(jump_ctx)
             self.exploreFalse(conditionals, ctx, instr)
         else:
-            cond = conditionals[instr.addr]
-            if cond == Script.Cond.TRUE:
-                self.exploreFalse(conditionals, ctx, instr)
-            elif cond == Script.Cond.FALSE:
-                self.exploreTrue(conditionals, ctx, instr)
-            else:
-                ctx.do_exit = True
+            ctx.do_exit = True
 
 class CommandIfJump(CommandIf):
     def execute(self, open_ctxs, conditionals, ctx, instr):
@@ -166,7 +159,6 @@ class CommandIfJump(CommandIf):
 
     def exploreTrue(self, conditionals, ctx, instr):
         ctx.pc = instr.args[1]
-        conditionals[instr.addr] |= Script.Cond.TRUE
 
 class CommandIfCall(CommandIf):
     def execute(self, open_ctxs, conditionals, ctx, instr):
@@ -185,7 +177,6 @@ class CommandIfCall(CommandIf):
     def exploreTrue(self, conditionals, ctx, instr):
         ctx.stack.append(instr.next_addr)
         ctx.pc = instr.args[1]
-        conditionals[instr.addr] |= Script.Cond.TRUE
 
 class CommandStd(Command):
     def funcAddr(self, n):
@@ -214,23 +205,16 @@ class CommandIfStd(CommandStd):
 
     def exploreFalse(self, conditionals, ctx, instr):
         ctx.pc = instr.next_addr
-        conditionals[instr.addr] |= Script.Cond.FALSE
 
     def explore(self, open_ctxs, conditionals, ctx, instr):
-        if instr.addr not in conditionals or conditionals[instr.addr] == Script.Cond.NONE:
-            conditionals[instr.addr] = Script.Cond.NONE
+        if instr.addr not in conditionals:
+            conditionals[instr.addr] = True
             jump_ctx = ctx.copy()
             self.exploreTrue(conditionals, jump_ctx, instr)
             open_ctxs.append(jump_ctx)
             self.exploreFalse(conditionals, ctx, instr)
         else:
-            cond = conditionals[instr.addr]
-            if cond == Script.Cond.TRUE:
-                self.exploreFalse(conditionals, ctx, instr)
-            elif cond == Script.Cond.FALSE:
-                self.exploreTrue(conditionals, ctx, instr)
-            else:
-                ctx.do_exit = True
+            ctx.do_exit = True
 
 class CommandIfJumpStd(CommandIfStd):
     def execute(self, open_ctxs, conditionals, ctx, instr):
@@ -247,7 +231,6 @@ class CommandIfJumpStd(CommandIfStd):
 
     def exploreTrue(self, conditionals, ctx, instr):
         ctx.pc = self.funcAddr(instr.args[1])
-        conditionals[instr.addr] |= Script.Cond.TRUE
 
 class CommandIfCallStd(CommandIfStd):
     def execute(self, open_ctxs, conditionals, ctx, instr):
@@ -266,7 +249,6 @@ class CommandIfCallStd(CommandIfStd):
     def exploreTrue(self, conditionals, ctx, instr):
         ctx.stack.append(instr.next_addr)
         ctx.pc = self.funcAddr(instr.args[1])
-        conditionals[instr.addr] |= Script.Cond.TRUE
 
 class CommandLoadPointer(Command):
     def format(self, instr):
@@ -658,12 +640,6 @@ class Script:
     LASTTALKED = 0x800F
 
     cache = {}
-
-    class Cond(enum.IntEnum):
-        NONE = 0
-        TRUE = 1
-        FALSE = 2
-        ALL = 3
 
     class Type(enum.IntEnum):
         PERSON = 0
