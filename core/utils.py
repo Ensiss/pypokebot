@@ -20,7 +20,7 @@ class AutoUpdater:
     """
     def __init__(self):
         super().__init__()
-        self._last_update = 0
+        self._last_update = -1
 
     @classmethod
     def lock(cls):
