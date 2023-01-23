@@ -72,6 +72,10 @@ class Database():
         Database.start_menu = menu.StartMenu()
         Database.multi_choices = utils.rawArray(menu.MultiChoice, 0x083E04B0, 0x41)
 
+        # Scripting
+        Database.global_context = ScriptContext(0x03000EB0)
+        Database.immediate_context = ScriptContext(0x03000F28)
+
     def plotTypeEffectiveness():
         import matplotlib.pyplot as plt
         from matplotlib.colors import LinearSegmentedColormap
@@ -222,3 +226,23 @@ class OWObject(utils.RawStruct, utils.AutoUpdater):
         self.curr_y -= 7
         self.x = self.curr_x
         self.y = self.curr_y
+
+class ScriptContext(utils.RawStruct, utils.AutoUpdater):
+    """
+    Script context in memory
+    """
+    fmt = "2BHII20I2I4I"
+    def __init__(self, addr):
+        super().__init__(addr)
+
+    def update(self):
+        unpacked = self.unpack()
+        (self.depth,
+         self.mode,
+         self.cmp_result,
+         self.ptr_asm,
+         self.pc) = unpacked[:5]
+        self.stack = unpacked[5:25]
+        (self.cmd_table_ptr,
+         self.cmd_table_max) = unpacked[25:27]
+        self.data = unpacked[27:]
