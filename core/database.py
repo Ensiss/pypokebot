@@ -53,6 +53,22 @@ class Database():
             for m in bank:
                 for connect in m.connects:
                     connect.findExits(m)
+        # Load wild battle data
+        wildptr = 0x083c9cb8
+        while True:
+            unpacked = mem.unpack(wildptr, "2B2x4I")
+            bank_id, map_id = unpacked[:2]
+            entry_ptrs = unpacked[2:]
+            if bank_id == 0xFF or map_id == 0xFF:
+                break
+            m = Database.banks[bank_id][map_id]
+            for i in range(4):
+                if entry_ptrs[i] != 0:
+                    wb = m.wild_battles[i]
+                    wb.ratio, mon_ptr = mem.unpack(entry_ptrs[i], "B3xI")
+                    nentries = (entry_ptrs[i] - mon_ptr) // 4
+                    wb.entries = utils.rawArray(world.WildEntry, mon_ptr, nentries)
+            wildptr += 20
 
         import pokedata
         import player

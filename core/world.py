@@ -104,6 +104,11 @@ class Map():
             if self.map_behavior[warp.y, warp.x] != 0:
                 self.phys_warps.append(warp)
 
+        # Wild battles
+        self.wild_battles = []
+        for i in range(4):
+            self.wild_battles.append(WildBattle())
+
     def getPathfinder(self):
         if self.pathfinder is None:
             self.pathfinder = Pathfinder(self)
@@ -306,6 +311,11 @@ class Connection(utils.RawStruct):
             x += xstep
             y += ystep
         self.exits = np.array(exits)
+
+class WildBattle():
+    def __init__(self):
+        self.ratio = 0
+        self.entries = []
 
 class WildEntry(utils.RawStruct):
     fmt = "2BH"
