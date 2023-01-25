@@ -21,6 +21,7 @@ import core.io; io = core.io.IO
 import misc
 import movement
 import battle
+from script import Script
 from bot import Bot
 
 parser = argparse.ArgumentParser(description="Pokebot")
@@ -38,6 +39,7 @@ core.reset()
 mem.init(core)
 io.init(core)
 db.init()
+Script.loadCache()
 
 screen = pygame.display.set_mode(size)
 clock = pygame.time.Clock()
