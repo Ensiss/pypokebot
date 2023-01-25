@@ -19,3 +19,25 @@ class Player(utils.AutoUpdater):
         self.coins = mem.readU16(saveblock1_offset + 0x294) ^ (encryption_key & 0xFFFF)
         self.saveblock1_offset = saveblock1_offset
         self.saveblock2_offset = saveblock2_offset
+
+class Pokedex(utils.AutoUpdater):
+    def update(self):
+        saveblock2_offset = mem.readU32(0x300500C)
+        dex_offset = saveblock2_offset + 0x18
+        unpacked = mem.unpack(dex_offset, "4B3I52B52B")
+        (self.order,
+         self.mode,
+         self.national_magic,
+         self.unknown,
+         self.unown_personality,
+         self.spinda_personality,
+         self.unknown2) = unpacked[:7]
+        self.owned = unpacked[7:59]
+        self.seen = unpacked[59:]
+
+    # idx-1 is used because species start with '??????' at idx 0
+    # but the pokedex skips it and starts with bulbasaur at idx 0
+    def hasSeen(self, idx):
+        return utils.getFlagFrom(self.seen, idx-1)
+    def hasOwned(self, idx):
+        return utils.getFlagFrom(self.owned, idx-1)

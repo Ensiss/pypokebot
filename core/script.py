@@ -5,6 +5,15 @@ import struct
 import enum
 import sys
 
+def getFlag(flag):
+    offset = mem.readU32(0x3005008)
+    byte = mem.readU8(offset + 0xEE0 + (flag >> 3))
+    return (byte & (1 << (flag & 7))) != 0
+
+def getVar(var):
+    offset = mem.readU32(0x3005008)
+    return mem.readU16(offset + 0x1000 + (var - 0x4000) * 2)
+
 class Command:
     arg_fmts = {
         "byte": "B",

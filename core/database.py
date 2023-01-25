@@ -78,6 +78,7 @@ class Database():
         Database.eteam = utils.rawArray(pokedata.PokemonData, 0x0202402C, 6)
         Database.battlers = utils.rawArray(pokedata.BattleData, 0x02023BE4, 4)
         Database.player = player.Player()
+        Database.pokedex = player.Pokedex()
         Database.bag = bag.Bag()
         Database.ows = utils.rawArray(OWObject, 0x02036E38, 16)
 
