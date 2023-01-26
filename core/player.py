@@ -38,6 +38,10 @@ class Pokedex(utils.AutoUpdater):
     # idx-1 is used because species start with '??????' at idx 0
     # but the pokedex skips it and starts with bulbasaur at idx 0
     def hasSeen(self, idx):
+        if idx <= 0:
+            return False
         return utils.getFlagFrom(self.seen, idx-1)
     def hasOwned(self, idx):
+        if idx <= 0:
+            return False
         return utils.getFlagFrom(self.owned, idx-1)
