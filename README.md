@@ -22,7 +22,7 @@ Install steps will be different if you are not using Linux, but this project sho
 
 ## pypokebot
 
-pypokebot uses `opencv-python` for display.
+pypokebot uses `pygame` for display and user input.
 
 ## Pokemon Fire Red GBA ROM (U) (V1.0)
 
