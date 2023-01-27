@@ -17,3 +17,37 @@ def attack(atk_id):
     while bm.is_open == 1:
         yield from misc.fullPress(io.Key.A)
     return 0
+
+def switch(poke):
+    """
+    Switch to the 0-indexed pokemon from the ones not already in battle
+    TODO: use moveCursor instead of navigating blind
+    TODO: use index from db.pteam
+    """
+    bm = db.battle_menu
+
+    if bm.menu != 0:
+        return -1
+    # Select the switch menu
+    yield from misc.moveCursor(2, 2, lambda: bm.cursor)
+    while bm.menu == 0:
+        yield from misc.fullPress(io.Key.A)
+    # Wait animation
+    yield from misc.wait(75)
+    # Select party member
+    yield from misc.fullPress(io.Key.RIGHT)
+    for i in range(poke):
+        yield from misc.fullPress(io.Key.DOWN)
+    for i in range(2):
+        yield from misc.fullPress(io.Key.A)
+    return 0
+
+def flee():
+    bm = db.battle_menu
+
+    if bm.menu != 0:
+        return -1
+    yield from misc.moveCursor(2, 3, lambda: bm.cursor)
+    while bm.menu == 0:
+        yield from misc.fullPress(io.Key.A)
+    return 0
