@@ -21,6 +21,29 @@ class Bag(utils.AutoUpdater, list):
             for i in range(5):
                 self.append(Pocket(self, 0x0203988C + i * pocket_sz))
 
+    def getItemLoc(self, item):
+        if type(item) is int:
+            item = db.items[item]
+        item_id = item.index
+        pocket_id = item.pocket - 1
+        pocket = self[pocket_id]
+        for cursor, inbag_item in enumerate(pocket):
+            if inbag_item.idx == item_id:
+                return pocket_id, cursor
+        return None, None
+
+    def getBagItem(self, item):
+        pocket, cursor = self.getItemLoc(item)
+        if cursor is None:
+            return None
+        return self[pocket][cursor]
+
+    def hasItem(self, item):
+        pocket, cursor = self.getItemLoc(item)
+        if cursor is None or self[pocket][cursor].quantity == 0:
+            return False
+        return True
+
 class Pocket(utils.RawStruct, list):
     class Type(enum.IntEnum):
         MAIN = 0
