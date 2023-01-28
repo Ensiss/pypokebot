@@ -385,7 +385,7 @@ class CommandCheckItemRoom(Command):
         if item_id == 0 or db.items[item_id].pocket == 0:
             return False
         item = db.items[item_id]
-        pocket = db.bag[item.pocket]
+        pocket = db.bag[item.pocket-1]
         for inbag_item in pocket:
             if inbag_item.idx == item_id:
                 return inbag_item.quantity + count <= 999
@@ -406,7 +406,7 @@ class CommandCheckItem(Command):
         if item_id == 0 or db.items[item_id].pocket == 0:
             return False
         item = db.items[item_id]
-        pocket = db.bag[item.pocket]
+        pocket = db.bag[item.pocket-1]
         for inbag_item in pocket:
             if inbag_item.idx == item_id:
                 return inbag_item.quantity >= count

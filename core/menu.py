@@ -30,8 +30,8 @@ class BagMenu(utils.RawStruct, utils.AutoUpdater):
          self.pocket) = unpacked[:3]
         self.cursors = list(unpacked[3:6])
         self.scrolls = list(unpacked[6:9])
-        (self.cursor,
-         self.scroll) = mem.unpack(0x030050D8, "2H")
+        (self.scroll,
+         self.cursor) = mem.unpack(0x030050D8, "2H")
 
 class StartMenu(utils.RawStruct, utils.AutoUpdater):
     fmt = "I12B"
