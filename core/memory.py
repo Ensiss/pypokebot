@@ -45,7 +45,14 @@ class Memory(object):
         Unpack variables at 'addr' using formating from the struct module
         Endian is automatically added to the formatting string
         If 'buf' is not specified, the buffer is inferred from the address
-        An additional format "S" automatically decodes Pokemon charset strings
+
+        Proposed modifications over struct.unpack:
+        - 'S' acts like 's' but also automatically decodes from Pokemon charset
+        - '.7B' uses only the first 7 bits of the field for a given variable
+        - '.7.1B' returns two variables of 7 and 1 bits each from a single byte
+        - '4.2B' defines 4 variables of 3 bits each, covering a full byte
+        - '(4B)' returns a tuple of 4 bytes instead of 4 individual variables
+        - '[4B]' returns an array of 4 bytes instead of 4 individual variables
         """
         def _expandFmt(fmt):
             """
