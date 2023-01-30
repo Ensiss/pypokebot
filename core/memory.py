@@ -40,13 +40,11 @@ class Memory(object):
                          Memory.oam,  # 0x7000000
                          Memory.rom]  # 0x8000000
 
-    def unpack(addr, fmt, buf=None):
+    class Unpacker:
         """
-        Unpack variables at 'addr' using formating from the struct module
-        Endian is automatically added to the formatting string
-        If 'buf' is not specified, the buffer is inferred from the address
-
-        Proposed modifications over struct.unpack:
+        Custom binary reading helper designed to extend the struct module.
+        Pre-compiles the format for faster execution.
+        Modifications over struct module:
         - 'S' acts like 's' but also automatically decodes from Pokemon charset
         - '.7B' uses only the first 7 bits of the field for a given variable
         - '.7.1B' returns two variables of 7 and 1 bits each from a single byte
@@ -54,35 +52,89 @@ class Memory(object):
         - '(4B)' returns a tuple of 4 bytes instead of 4 individual variables
         - '[4B]' returns an array of 4 bytes instead of 4 individual variables
         """
-        def _expandFmt(fmt):
-            """
-            Expands repeat counters in format strings
-            Ex: 4B8s2i -> BBBBsii
-            """
+        def __init__(self, fmt):
+            self.no_sub = (lambda l, elm: l.extend(elm))
+            self.subs = {"(": ("(", ")", lambda l, elm: l.append(elm)),
+                         "[": ("[", "]", lambda l, elm: l.append(tuple(elm)))}
+            self.fmt = fmt
+            self.varcount = 0
+            self.native_fmt = ""
+            self.groups = []
+            self.decode_list = []
+            self.parse(fmt)
+            self.size = struct.calcsize(self.native_fmt)
+
+        def unpack(self, buf, addr):
+            unpacked = list(struct.unpack_from("<"+self.native_fmt, buf, addr))
             out = []
-            for group in re.findall("\d*\w", fmt):
-                char = group[-1]
-                if char == "x":
-                    continue
-                repeat = 1
-                if len(group) > 1 and char.lower() != "s":
-                    repeat = int(group[:-1])
-                out += char * repeat
+            # Decode poke strings
+            for idx in self.decode_list:
+                unpacked[idx] = utils.pokeToAscii(unpacked[idx])
+            # Pack data
+            idx = 0
+            for sz, func in self.groups:
+                func(out, unpacked[idx:idx+sz])
+                idx += sz
             return out
 
+        def parse(self, fmt, idx=0, sub=None):
+            group_sz = 0
+            curr_bits = 0
+            paren = None
+            while idx < len(fmt):
+                if sub is None and fmt[idx] in self.subs:
+                    if group_sz > 0:
+                        self.groups.append((group_sz, self.no_sub))
+                        group_sz = 0
+                    idx = self.parse(fmt, idx+1, self.subs[fmt[idx]])
+                    continue
+                elif sub is not None and fmt[idx] == sub[1]:
+                    self.groups.append((group_sz, sub[2]))
+                    return idx + 1
+                res = re.match("\d*(?:\.\d+)?[a-zA-Z]", fmt[idx:])
+                if res is None:
+                    raise SyntaxError("Invalid format: %s" % fmt[idx:])
+                group = res.group()
+                char = group[-1]
+                repeat = 1
+                repeat_match = re.match("\d+", group)
+                if repeat_match:
+                    repeat = int(repeat_match.group(0))
+                if repeat <= 0:
+                    raise SyntaxError("Format repeater has to be positive: %s" % fmt[idx:])
+                native_char = "s" if char == "S" else char
+                if native_char == "s":
+                    self.varcount += 1
+                elif native_char != "x":
+                    self.varcount += repeat
+                if char == "S":
+                    self.decode_list.append(self.varcount-1)
+                repeat_str = str(repeat) if repeat > 1 else ""
+                self.native_fmt += '%s%c' % (repeat_str, native_char)
+                group_sz += repeat
+                idx += res.end()
+            if group_sz > 0:
+                self.groups.append((group_sz, self.no_sub))
+            return idx
+
+    def unpackRaw(addr, fmt, buf=None):
+        """
+        Unpack variables at 'addr' using formating from the struct module
+        Endian is automatically added to the formatting string
+        If 'buf' is not specified, the buffer is inferred from the address
+        """
         buf = Memory.bufferFromAddr(addr, buf)
-        expanded = None
-        if "S" in fmt:
-            expanded = _expandFmt(fmt)
-            old_fmt = fmt
-            fmt = fmt.replace("S", "s")
-        unpacked = struct.unpack_from("<"+fmt, buf, addr & 0xFFFFFF)
-        if expanded is not None:
-            if len(unpacked) != len(expanded):
-                print("Unpack: incorrect expansion '%s' @ 0x%08X" % (old_fmt, addr))
-                return unpacked
-            unpacked = tuple((utils.pokeToAscii(x) if expanded[i] == "S" else x) for i,x in enumerate(unpacked))
-        return unpacked
+        return struct.unpack_from("<"+fmt, buf, addr & 0xFFFFFF)
+    def unpack(addr, unpacker, buf=None):
+        """
+        Unpack variables at 'addr' using custom Unpacker formating
+        Endian is automatically added to the formatting string
+        If 'buf' is not specified, the buffer is inferred from the address
+        """
+        if type(unpacker) is str:
+            return Memory.unpackRaw(addr, unpacker, buf)
+        buf = Memory.bufferFromAddr(addr, buf)
+        return unpacker.unpack(buf, addr & 0xFFFFFF)
 
     def readU8(addr, buf=None):
         return Memory.unpack(addr, "B", buf)[0]

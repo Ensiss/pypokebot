@@ -188,7 +188,7 @@ class Species(utils.RawStruct):
         return 1 + 0.5 * (self.type1 == mt or self.type2 == mt)
 
 class Item(utils.RawStruct):
-    fmt = "14S2H2BIH2B4I"
+    fmt = mem.Unpacker("14S2H2BIH2B4I")
     def __init__(self, addr):
         (self.name,
          self.index,

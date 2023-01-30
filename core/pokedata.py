@@ -82,7 +82,7 @@ class IPokeData(utils.RawStruct, utils.AutoUpdater):
         return dmg * 217 / 255, dmg
 
 class BattleData(IPokeData):
-    fmt = "10HI16BH2B2H11SB8S5I"
+    fmt = mem.Unpacker("10HI16BH2B2H11SB8S5I")
     def __init__(self, addr):
         super().__init__(addr)
 
@@ -126,7 +126,7 @@ class BattleData(IPokeData):
         self.species = db.species[self.species_idx]
 
 class PokemonData(IPokeData):
-    fmt = "2I10SH7SBH2x48sI2B7H"
+    fmt = mem.Unpacker("2I10SH7SBH2x48sI2B7H")
     def __init__(self, addr):
         super().__init__(addr)
 
