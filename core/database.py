@@ -248,18 +248,17 @@ class ScriptContext(utils.RawStruct, utils.AutoUpdater):
     """
     Script context in memory
     """
-    fmt = "2BHII20I2I4I"
+    fmt = mem.Unpacker("2BHII(20I)2I(4I)")
     def __init__(self, addr):
         super().__init__(addr)
 
     def update(self):
-        unpacked = self.unpack()
         (self.depth,
          self.mode,
          self.cmp_result,
          self.ptr_asm,
-         self.pc) = unpacked[:5]
-        self.stack = unpacked[5:25]
-        (self.cmd_table_ptr,
-         self.cmd_table_max) = unpacked[25:27]
-        self.data = unpacked[27:]
+         self.pc,
+         self.stack,
+         self.cmd_table_ptr,
+         self.cmd_table_max,
+         self.data) = self.unpack()

@@ -82,35 +82,23 @@ class IPokeData(utils.RawStruct, utils.AutoUpdater):
         return dmg * 217 / 255, dmg
 
 class BattleData(IPokeData):
-    fmt = mem.Unpacker("10HI16BH2B2H11SB8S5I")
-    def __init__(self, addr):
-        super().__init__(addr)
-
+    fmt = mem.Unpacker("6H(4H)I(8B)4B(4B)H2B2H11SB8S5I")
     def update(self):
-        unpacked = self.unpack()
         (self.species_idx,
          self.atk,
          self.defense,
          self.speed,
          self.spatk,
-         self.spdef) = unpacked[:6]
-        self.move_ids = list(unpacked[6:10])
-        self.moves = [db.moves[idx] for idx in unpacked[6:10] if idx != 0]
-        self.ivs = unpacked[10]
-        (self.hp_buff,
-         self.atk_buff,
-         self.def_buff,
-         self.speed_buff,
-         self.spatk_buff,
-         self.spdef_buff,
-         self.accuracy_buff,
-         self.evasion_buff) = (x - 6 for x in unpacked[11:19])
-        (self.ability,
+         self.spdef,
+         move_ids,
+         self.ivs,
+         buffs,
+         self.ability,
          self.type1,
          self.type2,
-         self.padding) = unpacked[19:23]
-        self.pps = list(unpacked[23:27])
-        (self.curr_hp,
+         self.padding,
+         self.pps,
+         self.curr_hp,
          self.level,
          self.happiness,
          self.max_hp,
@@ -122,14 +110,21 @@ class BattleData(IPokeData):
          self.pid,
          self.status,
          self.status2,
-         self.ot_id) = unpacked[27:]
+         self.ot_id) = self.unpack()
+        (self.hp_buff,
+         self.atk_buff,
+         self.def_buff,
+         self.speed_buff,
+         self.spatk_buff,
+         self.spdef_buff,
+         self.accuracy_buff,
+         self.evasion_buff) = (x - 6 for x in buffs)
+        self.move_ids = move_ids
+        self.moves = [db.moves[idx] for idx in move_ids if idx != 0]
         self.species = db.species[self.species_idx]
 
 class PokemonData(IPokeData):
     fmt = mem.Unpacker("2I10SH7SBH2x48sI2B7H")
-    def __init__(self, addr):
-        super().__init__(addr)
-
     def update(self):
         (self.personality,
          self.ot_id,
@@ -184,12 +179,11 @@ class Growth(utils.RawStruct):
          self.unknown) = super().__init__(addr, buf)
 
 class Attacks(utils.RawStruct):
-    fmt = "4H4B"
+    fmt = mem.Unpacker("(4H)(4B)")
     def __init__(self, addr, buf):
-        unpacked = super().__init__(addr, buf)
-        self.move_ids = list(unpacked[:4])
-        self.moves = [db.moves[idx] for idx in unpacked[:4] if idx != 0]
-        self.pps = list(unpacked[4:])
+        (self.move_ids,
+         self.pps) = super().__init__(addr, buf)
+        self.moves = [db.moves[idx] for idx in self.move_ids if idx != 0]
 
 class EVs(utils.RawStruct):
     fmt = "12B"

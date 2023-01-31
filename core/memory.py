@@ -54,8 +54,8 @@ class Memory(object):
         """
         def __init__(self, fmt):
             self.no_sub = (lambda l, elm: l.extend(elm))
-            self.subs = {"(": ("(", ")", lambda l, elm: l.append(elm)),
-                         "[": ("[", "]", lambda l, elm: l.append(tuple(elm)))}
+            self.subs = {"(": ("(", ")", lambda l, elm: l.append(tuple(elm))),
+                         "[": ("[", "]", lambda l, elm: l.append(elm))}
             self.fmt = fmt
             self.varcount = 0
             self.native_fmt = ""
