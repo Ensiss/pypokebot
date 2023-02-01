@@ -57,7 +57,10 @@ class Memory(object):
             self.subs = {"(": ("(", ")", lambda l, elm: l.append(tuple(elm))),
                          "[": ("[", "]", lambda l, elm: l.append(elm))}
             self.fmt = fmt
-            self.varcount = 0
+            self.bit_idx = 0 # Variable index in current bitfield
+            self.bit_currvars = [] # List of variables in current bitfield
+            self.bit_unpacks = [] # List of variable list for each bitfield
+            self.varcount = 0 # Current processed variable count
             self.native_fmt = ""
             self.groups = []
             self.decode_list = []
@@ -78,6 +81,15 @@ class Memory(object):
             return out
 
         def parse(self, fmt, idx=0, sub=None):
+            def registerBitField():
+                self.bit_unpacks.append((self.varcount, self.bit_currvars))
+                self.bit_currvars = []
+                self.varcount += 1
+                repeat = ((self.bit_idx-1) // 8) + 1
+                repeat_str = str(repeat) if repeat > 1 else ""
+                self.native_fmt += '%ss' % repeat_str
+                self.bit_idx = 0
+
             group_sz = 0
             curr_bits = 0
             paren = None
@@ -91,7 +103,7 @@ class Memory(object):
                 elif sub is not None and fmt[idx] == sub[1]:
                     self.groups.append((group_sz, sub[2]))
                     return idx + 1
-                res = re.match("\d*(?:\.\d+)?[a-zA-Z]", fmt[idx:])
+                res = re.match("\d*(?:\.\d+)*[a-zA-Z]", fmt[idx:])
                 if res is None:
                     raise SyntaxError("Invalid format: %s" % fmt[idx:])
                 group = res.group()
@@ -102,19 +114,33 @@ class Memory(object):
                     repeat = int(repeat_match.group(0))
                 if repeat <= 0:
                     raise SyntaxError("Format repeater has to be positive: %s" % fmt[idx:])
-                native_char = "s" if char == "S" else char
-                if native_char == "s":
-                    self.varcount += 1
-                elif native_char != "x":
-                    self.varcount += repeat
-                if char == "S":
-                    self.decode_list.append(self.varcount-1)
-                repeat_str = str(repeat) if repeat > 1 else ""
-                self.native_fmt += '%s%c' % (repeat_str, native_char)
-                group_sz += repeat
+                has_bits = "." in group
+                if has_bits:
+                    bitvars = []
+                    for bits in re.findall("\.(\d+)", group):
+                        bitvars.append(int(bits))
+                    if char != 'x':
+                        self.bit_currvars += bitvars * repeat
+                        group_sz += len(bitvars) * repeat
+                    self.bit_idx += sum(bitvars) * repeat
+                else:
+                    if self.bit_idx > 0:
+                        registerBitField()
+                    native_char = "s" if char == "S" else char
+                    if native_char == "s":
+                        self.varcount += 1
+                    elif native_char != "x":
+                        self.varcount += repeat
+                        group_sz += repeat
+                    if char == "S":
+                        self.decode_list.append(self.varcount-1)
+                    repeat_str = str(repeat) if repeat > 1 else ""
+                    self.native_fmt += '%s%c' % (repeat_str, native_char)
                 idx += res.end()
             if group_sz > 0:
                 self.groups.append((group_sz, self.no_sub))
+            if self.bit_idx > 0:
+                registerBitField()
             return idx
 
     def unpackRaw(addr, fmt, buf=None):
