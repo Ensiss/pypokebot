@@ -129,6 +129,7 @@ class Memory(object):
                     native_char = "s" if char == "S" else char
                     if native_char == "s":
                         self.varcount += 1
+                        group_sz += 1
                     elif native_char != "x":
                         self.varcount += repeat
                         group_sz += repeat
