@@ -48,7 +48,9 @@ class Memory(object):
         - 'S' acts like 's' but also automatically decodes from Pokemon charset
         - '.7B' uses only the first 7 bits of the field for a given variable
         - '.7.1B' returns two variables of 7 and 1 bits each from a single byte
-        - '4.2B' defines 4 variables of 3 bits each, covering a full byte
+        - '4.2B' defines 4 variables of 2 bits each, covering a full byte
+        - '4.2.4.2B' defines 4*3=12 variables, covering 4 bytes
+        - '.4I.4x' returns 1 variable on the first 4 bits, and ignores the last 4
         - '(4B)' returns a tuple of 4 bytes instead of 4 individual variables
         - '[4B]' returns an array of 4 bytes instead of 4 individual variables
         """
