@@ -68,12 +68,42 @@ class Memory(object):
             self.size = struct.calcsize(self.native_fmt)
 
         def unpack(self, buf, addr):
+            def unpackBitvar(buf, bit_idx, var_bitcount):
+                out = 0
+                # Setup
+                src_byte_idx = bit_idx // 8
+                src_bit_idx = bit_idx % 8
+                dst_bit_idx = 0
+                remaining_bits = var_bitcount
+                while remaining_bits > 0:
+                    bits_to_read = min(8-src_bit_idx, remaining_bits)
+                    # Read data
+                    byte = buf[src_byte_idx]
+                    read_bits = (byte >> src_bit_idx) & ((1 << bits_to_read)-1)
+                    out |= read_bits << dst_bit_idx
+                    # Update byte/bit pointers
+                    remaining_bits -= bits_to_read
+                    src_byte_idx += 1
+                    src_bit_idx = 0
+                    dst_bit_idx += bits_to_read
+                return out
+            def unpackBitfield(buf, bits):
+                field = []
+                bit_idx = 0
+                for bit_sz in bits:
+                    field.append(unpackBitvar(buf, bit_idx, bit_sz))
+                    bit_idx += bit_sz
+                return field
+
             unpacked = list(struct.unpack_from("<"+self.native_fmt, buf, addr))
-            out = []
             # Decode poke strings
             for idx in self.decode_list:
                 unpacked[idx] = utils.pokeToAscii(unpacked[idx])
+            # Expand bitfields, reverse order to keep idx consistent
+            for idx, bitfield in self.bit_unpacks[::-1]:
+                unpacked[idx:idx+1] = unpackBitfield(unpacked[idx], bitfield)
             # Pack data
+            out = []
             idx = 0
             for sz, func in self.groups:
                 func(out, unpacked[idx:idx+sz])
@@ -127,14 +157,14 @@ class Memory(object):
                     if self.bit_idx > 0:
                         registerBitField()
                     native_char = "s" if char == "S" else char
+                    if char == "S":
+                        self.decode_list.append(self.varcount)
                     if native_char == "s":
                         self.varcount += 1
                         group_sz += 1
                     elif native_char != "x":
                         self.varcount += repeat
                         group_sz += repeat
-                    if char == "S":
-                        self.decode_list.append(self.varcount-1)
                     repeat_str = str(repeat) if repeat > 1 else ""
                     self.native_fmt += '%s%c' % (repeat_str, native_char)
                 idx += res.end()
