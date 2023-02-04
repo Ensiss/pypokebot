@@ -19,32 +19,30 @@ class BattleMenu(utils.RawStruct, utils.AutoUpdater):
         self.menu = 0 if self.submenu == 1 else self.cursor + 1
 
 class BagMenu(utils.RawStruct, utils.AutoUpdater):
-    fmt = "2B7H"
+    fmt = mem.Unpacker("2BH[3H][3H]")
     def __init__(self):
         super().__init__(0x0203AD00)
 
     def update(self):
-        unpacked = self.unpack()
         (self.unknown,
          self.is_open,
-         self.pocket) = unpacked[:3]
-        self.cursors = list(unpacked[3:6])
-        self.scrolls = list(unpacked[6:9])
+         self.pocket,
+         self.cursors,
+         self.scrolls) = self.unpack()
         (self.scroll,
          self.cursor) = mem.unpack(0x030050D8, "2H")
 
 class StartMenu(utils.RawStruct, utils.AutoUpdater):
-    fmt = "I12B"
+    fmt = mem.Unpacker("I2B[9B]B")
     def __init__(self):
         super().__init__(0x020370F0)
 
     def update(self):
-        unpacked = self.unpack()
         (self.active_ctx,
          self.cursor,
-         self.nb_items) = unpacked[:3]
-        self.item_idxs = list(unpacked[3:12])
-        self.state = unpacked[12]
+         self.nb_items,
+         self.item_idxs,
+         self.state) = self.unpack()
         dialog = mem.unpack(0x020204C0, "12s")[0]
         # TODO: find something more robust/clean
         start_bytes = b"\x00\x16\x01\x07\x0d\x0f\x3d\x01\x60\x2d\x00\x02"
