@@ -70,40 +70,13 @@ class Memory(object):
             self.size = struct.calcsize(self.native_fmt)
 
         def unpack(self, buf, addr):
-            def unpackBitvar(buf, bit_idx, var_bitcount):
-                out = 0
-                # Setup
-                src_byte_idx = bit_idx // 8
-                src_bit_idx = bit_idx % 8
-                dst_bit_idx = 0
-                remaining_bits = var_bitcount
-                while remaining_bits > 0:
-                    bits_to_read = min(8-src_bit_idx, remaining_bits)
-                    # Read data
-                    byte = buf[src_byte_idx]
-                    read_bits = (byte >> src_bit_idx) & ((1 << bits_to_read)-1)
-                    out |= read_bits << dst_bit_idx
-                    # Update byte/bit pointers
-                    remaining_bits -= bits_to_read
-                    src_byte_idx += 1
-                    src_bit_idx = 0
-                    dst_bit_idx += bits_to_read
-                return out
-            def unpackBitfield(buf, bits):
-                field = []
-                bit_idx = 0
-                for bit_sz in bits:
-                    field.append(unpackBitvar(buf, bit_idx, bit_sz))
-                    bit_idx += bit_sz
-                return field
-
             unpacked = list(struct.unpack_from("<"+self.native_fmt, buf, addr))
             # Decode poke strings
             for idx in self.decode_list:
                 unpacked[idx] = utils.pokeToAscii(unpacked[idx])
             # Expand bitfields, reverse order to keep idx consistent
             for idx, bitfield in self.bit_unpacks[::-1]:
-                unpacked[idx:idx+1] = unpackBitfield(unpacked[idx], bitfield)
+                unpacked[idx:idx+1] = Memory.unpackBitfield(0, bitfield, unpacked[idx])
             # Pack data
             out = []
             idx = 0
@@ -176,6 +149,36 @@ class Memory(object):
                 registerBitField()
             return idx
 
+    def unpackBitfield(addr, bits, buf=None):
+        """
+        Unpack a bitfield defined by a list of variable sizes, in bits.
+        """
+        def unpackBitvar(buf, bit_idx, var_bitcount):
+            out = 0
+            # Setup
+            src_byte_idx = bit_idx // 8
+            src_bit_idx = bit_idx % 8
+            dst_bit_idx = 0
+            remaining_bits = var_bitcount
+            while remaining_bits > 0:
+                bits_to_read = min(8-src_bit_idx, remaining_bits)
+                # Read data
+                byte = buf[src_byte_idx]
+                read_bits = (byte >> src_bit_idx) & ((1 << bits_to_read)-1)
+                out |= read_bits << dst_bit_idx
+                # Update byte/bit pointers
+                remaining_bits -= bits_to_read
+                src_byte_idx += 1
+                src_bit_idx = 0
+                dst_bit_idx += bits_to_read
+            return out
+        buf = Memory.bufferFromAddr(addr, buf)
+        field = []
+        bit_idx = (addr & 0xFFFFFF) * 8
+        for bit_sz in bits:
+            field.append(unpackBitvar(buf, bit_idx, bit_sz))
+            bit_idx += bit_sz
+        return field
     def unpackRaw(addr, fmt, buf=None):
         """
         Unpack variables at 'addr' using formating from the struct module
