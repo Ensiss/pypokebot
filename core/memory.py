@@ -164,6 +164,8 @@ class Memory(object):
                 bits_to_read = min(8-src_bit_idx, remaining_bits)
                 # Read data
                 byte = buf[src_byte_idx]
+                if type(byte) is bytes:
+                    byte = byte[0]
                 read_bits = (byte >> src_bit_idx) & ((1 << bits_to_read)-1)
                 out |= read_bits << dst_bit_idx
                 # Update byte/bit pointers

@@ -225,10 +225,10 @@ class SignEvent(utils.RawStruct):
          union) = super().__init__(addr)
         # Hidden objects
         self.script_ptr = union
-        self.item_id = (union >> 0) & 0xFFFF
-        self.hidden_item_id = (union >> 16) & 0xFF
-        self.quantity = (union >> 24) & 0x7F
-        self.is_underfoot = (union >> 31) & 1
+        (self.item_id,
+         self.hidden_item_id,
+         self.quantity,
+         self.is_underfoot) = mem.unpackBitfield(addr+8, [16, 8, 7, 1])
 
 class WarpEvent(utils.RawStruct):
     fmt = "2H4B"
