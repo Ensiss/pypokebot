@@ -14,6 +14,25 @@ class Bot():
         self.wait_after_battle = 30
         self.saved_keys = 0
 
+    def getWeakenMove():
+        """
+        Returns the index of the best move for non-lethal damage.
+        TODO: also consider status moves
+        """
+        p = db.battlers[0]
+        e = db.battlers[1]
+        best = None
+        maxdmg = 0
+
+        for i, move in enumerate(p.moves):
+            if p.pps[i] == 0:
+                continue
+            dmg = p.potentialDamage(e, move)
+            if dmg[1] < e.curr_hp and (best is None or dmg[1] > maxdmg):
+                best = i
+                maxdmg = dmg[0]
+        return best
+
     def getBestMove():
         """
         Returns the index of the best move the current pokemon can use
