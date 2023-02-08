@@ -3,6 +3,7 @@ import memory; mem = memory.Memory
 import database; db = database.Database
 import core.io; io = core.io.IO
 import misc
+import numpy as np
 
 class Bot():
     def __init__(self, main_fun, battle_fun):
@@ -28,9 +29,12 @@ class Bot():
             if p.pps[i] == 0:
                 continue
             dmg = p.potentialDamage(e, move)
-            if dmg[1] < e.curr_hp and (best is None or dmg[1] > maxdmg):
+            if dmg[1] == 0:
+                continue
+            # TODO: consider moves with low chance to kill
+            if np.ceil(dmg[1]) < e.curr_hp and (best is None or dmg[1] > maxdmg):
                 best = i
-                maxdmg = dmg[0]
+                maxdmg = dmg[1]
         return best
 
     def getBestMove():
