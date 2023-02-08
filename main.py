@@ -94,13 +94,24 @@ def mainAI():
         yield from movement.turn(core.KEY_RIGHT)
 
 def battleAI():
-    print(db.pteam[0].species.name, "vs", db.eteam[0].species.name)
+    enemy = db.eteam[0]
+    print(db.pteam[0].species.name, "vs", enemy.species.name)
 
     while True:
         if db.battle_menu.is_open and db.battle_menu.menu == 0:
-            best_move = Bot.getBestMove()
-            print("Best move: %s" % db.battlers[0].moves[best_move].name)
-            yield from battle.attack(best_move)
+            # If the pokemon has not been caught yet, try to catch it
+            if not db.pokedex.hasOwned(enemy.growth.species_idx):
+                move = Bot.getWeakenMove()
+                pokeball = db.items[4]
+                if db.bag.hasItem(pokeball):
+                    if move is None:
+                        yield from battle.use(pokeball)
+                    else:
+                        yield from battle.attack(move)
+                    continue
+            move = Bot.getBestMove()
+            print("Best move: %s" % db.battlers[0].moves[move].name)
+            yield from battle.attack(move)
         else:
             yield io.toggle(core.KEY_A)
 
