@@ -81,6 +81,14 @@ class IPokeData(utils.RawStruct, utils.AutoUpdater):
         dmg = dmg * stab * effectiveness
         return dmg * 217 / 255, dmg
 
+    def catchRate(self, pokeball_id):
+        species_rate = self.species.catch_rate
+        ball_rate = 1.0 # TODO: adjust for different pokeballs
+        bonus_status = 1.0 # TODO: adjust for status effects
+        rate = (3*self.max_hp - 2*self.curr_hp) * species_rate * ball_rate
+        rate = (rate / (3 * self.max_hp)) * bonus_status
+        return rate
+
 class BattleData(IPokeData):
     fmt = mem.Unpacker("6H(4H)I(8B)4B(4B)H2B2H11SB8S5I")
     def update(self):
