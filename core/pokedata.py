@@ -81,9 +81,18 @@ class IPokeData(utils.RawStruct, utils.AutoUpdater):
         dmg = dmg * stab * effectiveness
         return dmg * 217 / 255, dmg
 
-    def catchRate(self, pokeball_id):
+    def catchRate(self, pokeball):
+        if type(pokeball) is int:
+            pokeball = db.items[pokeball]
+        pokeball_id = pokeball.index
         species_rate = self.species.catch_rate
-        ball_rate = 1.0 # TODO: adjust for different pokeballs
+        ball_rate = 1.0
+        if pokeball_id == 3: # Great ball
+            ball_rate = 1.5
+        elif pokeball_id == 2: # Ultra ball
+            ball_rate = 2.0
+        elif pokeball_id == 1: # Master ball
+            ball_rate = 255.0
         bonus_status = 1.0
         if self.isSleeping() or self.isFrozen():
             bonus_status = 2.0
