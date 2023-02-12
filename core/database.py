@@ -4,6 +4,7 @@ import enum
 import utils
 import world
 import memory; mem = memory.Memory
+import re
 
 class Database():
     class PlayerState(enum.IntEnum):
@@ -19,7 +20,7 @@ class Database():
 
         Database.moves = [Move(0x08250C04+i*12, n) for i, n in enumerate(Database.move_names)]
         Database.species = [Species(0x08254784+i*28, n) for i, n in enumerate(Database.species_names)]
-        Database.items = utils.rawArray(Item, 0x083DB028, 375)
+        Database.items = ItemList()
 
         # Type effectiveness chart
         Database.type_chart = np.ones((18, 18))
@@ -203,6 +204,24 @@ class Item(utils.RawStruct):
          self.battle_usage,
          self.battle_usage_code_ptr,
          self.extra_parameter) = super().__init__(addr)
+    def __eq__(self, other):
+        if type(other) is Item:
+            return other.index == self.index
+        elif type(other) is int:
+            return other == self.index
+        return other == self
+
+class ItemList(list):
+    def __init__(self):
+        super().__init__(utils.rawArray(Item, 0x083DB028, 375))
+        self.data = {}
+        for x in self:
+            if not x.name[0].isalpha():
+                continue
+            key = re.sub("\W", "", x.name.lower().replace(" ", "_"))
+            self.data[key] = x
+    def __getattr__(self, key):
+        return self.data[key]
 
 class OWObject(utils.RawStruct, utils.AutoUpdater):
     """

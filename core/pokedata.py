@@ -87,11 +87,11 @@ class IPokeData(utils.RawStruct, utils.AutoUpdater):
         pokeball_id = pokeball.index
         species_rate = self.species.catch_rate
         ball_rate = 1.0
-        if pokeball_id == 3: # Great ball
+        if db.items.great_ball == pokeball_id: # Great ball
             ball_rate = 1.5
-        elif pokeball_id == 2: # Ultra ball
+        elif db.items.ultra_ball == pokeball_id: # Ultra ball
             ball_rate = 2.0
-        elif pokeball_id == 1: # Master ball
+        elif db.items.master_ball == pokeball_id: # Master ball
             ball_rate = 255.0
         bonus_status = 1.0
         if self.isSleeping() or self.isFrozen():
