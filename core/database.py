@@ -18,9 +18,9 @@ class Database():
         Database.ability_names = mem.readPokeList(0x824FC4D, 13, b'\x00')
         Database.type_names = mem.readPokeList(0x824F1A0, 7, b'\x00')
 
-        Database.moves = [Move(0x08250C04+i*12, n) for i, n in enumerate(Database.move_names)]
-        Database.species = [Species(0x08254784+i*28, n) for i, n in enumerate(Database.species_names)]
-        Database.items = ItemList()
+        Database.moves = NamedDataList([Move(0x08250C04+i*12, n) for i, n in enumerate(Database.move_names)])
+        Database.species = NamedDataList([Species(0x08254784+i*28, n) for i, n in enumerate(Database.species_names)])
+        Database.items = NamedDataList(utils.rawArray(Item, 0x083DB028, 375))
 
         # Type effectiveness chart
         Database.type_chart = np.ones((18, 18))
@@ -211,9 +211,13 @@ class Item(utils.RawStruct):
             return other == self.index
         return other == self
 
-class ItemList(list):
-    def __init__(self):
-        super().__init__(utils.rawArray(Item, 0x083DB028, 375))
+class NamedDataList(list):
+    """
+    Wrapper class which acts as a list, but also allows direct named access to its elements.
+    Elements of the list must have a ".name" member for this to work.
+    """
+    def __init__(self, array):
+        super().__init__(array)
         self.data = {}
         for x in self:
             if not x.name[0].isalpha():
