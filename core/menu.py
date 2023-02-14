@@ -2,6 +2,14 @@ import memory; mem = memory.Memory
 import database; db = database.Database
 import utils
 
+class PartyMenu(utils.RawStruct, utils.AutoUpdater):
+    fmt = "B"
+    def __init__(self):
+        super().__init__(0x0203B0A9)
+
+    def update(self):
+        (self.cursor,) = self.unpack()
+
 class BattleMenu(utils.RawStruct, utils.AutoUpdater):
     fmt = "2BHB"
     def __init__(self):

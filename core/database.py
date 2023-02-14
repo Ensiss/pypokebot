@@ -89,6 +89,7 @@ class Database():
         Database.bag_menu = menu.BagMenu()
         Database.start_menu = menu.StartMenu()
         Database.multi_choices = utils.rawArray(menu.MultiChoice, 0x083E04B0, 0x41)
+        Database.party_menu = menu.PartyMenu()
 
         # Scripting
         Database.global_context = ScriptContext(0x03000EB0)
