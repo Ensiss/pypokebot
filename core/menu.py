@@ -4,11 +4,25 @@ import utils
 
 class PartyMenu(utils.RawStruct, utils.AutoUpdater):
     fmt = "B"
+    internal_fmt = mem.Unpacker("2I.1.3.7.7.14I[3B][8B]B[256H][16h]")
     def __init__(self):
         super().__init__(0x0203B0A9)
 
     def update(self):
         (self.cursor,) = self.unpack()
+        internal_addr = mem.readU32(0x0203B09C)
+        (self.task_ptr,
+         self.exit_callback,
+         self.choose_multiple,
+         self.last_selected_slot,
+         self.sprite_id_confirm_pokeball,
+         self.sprite_id_cancel_pokeball,
+         self.message_id,
+         self.window_id,
+         self.actions,
+         self.nb_actions,
+         self.pal_buffer,
+         self.data) = mem.unpack(internal_addr, PartyMenu.internal_fmt)
 
 class BattleMenu(utils.RawStruct, utils.AutoUpdater):
     fmt = "2BHB"
