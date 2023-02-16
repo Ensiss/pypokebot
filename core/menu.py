@@ -3,16 +3,25 @@ import database; db = database.Database
 import utils
 
 class PartyMenu(utils.RawStruct, utils.AutoUpdater):
-    fmt = "B"
+    fmt = mem.Unpacker("2I.4.2.2B2bBH[2h]")
     internal_fmt = mem.Unpacker("2I.1.3.7.7.14I[3B][8B]B[256H][16h]")
     def __init__(self):
-        super().__init__(0x0203B0A9)
+        super().__init__(0x0203B0A0)
 
     def update(self):
-        (self.cursor,) = self.unpack()
+        (self.exit_callback,
+         self.task_ptr,
+         self.menu_type,
+         self.layout,
+         self.choose_mon_battle_type,
+         self.cursor,
+         self.cursor2,
+         self.action,
+         self.bag_item,
+         self.data) = self.unpack()
         internal_addr = mem.readU32(0x0203B09C)
-        (self.task_ptr,
-         self.exit_callback,
+        (self.internal_task_ptr,
+         self.internal_exit_callback,
          self.choose_multiple,
          self.last_selected_slot,
          self.sprite_id_confirm_pokeball,
@@ -22,7 +31,7 @@ class PartyMenu(utils.RawStruct, utils.AutoUpdater):
          self.actions,
          self.nb_actions,
          self.pal_buffer,
-         self.data) = mem.unpack(internal_addr, PartyMenu.internal_fmt)
+         self.internal_data) = mem.unpack(internal_addr, PartyMenu.internal_fmt)
 
 class BattleMenu(utils.RawStruct, utils.AutoUpdater):
     fmt = "2BHB"
