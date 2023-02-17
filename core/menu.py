@@ -5,6 +5,7 @@ import utils
 class PartyMenu(utils.RawStruct, utils.AutoUpdater):
     fmt = mem.Unpacker("2I.4.2.2B2bBH[2h]")
     internal_fmt = mem.Unpacker("2I.1.3.7.7.14I[3B][8B]B[256H][16h]")
+    order_fmt = mem.Unpacker("6.4B")
     def __init__(self):
         super().__init__(0x0203B0A0)
 
@@ -32,6 +33,11 @@ class PartyMenu(utils.RawStruct, utils.AutoUpdater):
          self.nb_actions,
          self.pal_buffer,
          self.internal_data) = mem.unpack(internal_addr, PartyMenu.internal_fmt)
+        order = mem.unpack(0x0203B0DC, PartyMenu.order_fmt)
+        if all([x==0 for x in order]):
+            self.order = list(range(6)) # Default order if unavailable
+        else:
+            self.order = [order[i] for i in [1, 0, 3, 2, 5, 4]]
 
 class BattleMenu(utils.RawStruct, utils.AutoUpdater):
     fmt = "2BHB"
