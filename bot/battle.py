@@ -34,14 +34,16 @@ def use(item_id):
         yield from misc.fullPress(io.Key.A)
     return 0
 
-def switch(poke):
+def switch(index):
     """
-    Switch to the 0-indexed pokemon from the ones not already in battle
-    TODO: use moveCursor instead of navigating blind
-    TODO: use index from db.pteam
+    Switch to the specified pokemon from the player's party
+    Will return if the pokemon is already out or the index is invalid
     """
     bm = db.battle_menu
+    pm = db.party_menu
 
+    if index == 0 or index >= db.getPartySize():
+        return -1
     if bm.menu != 0:
         return -1
     # Select the switch menu
@@ -52,8 +54,7 @@ def switch(poke):
     yield from misc.wait(75)
     # Select party member
     yield from misc.fullPress(io.Key.RIGHT)
-    for i in range(poke):
-        yield from misc.fullPress(io.Key.DOWN)
+    yield from misc.moveCursor(1, index, lambda: pm.cursor)
     for i in range(2):
         yield from misc.fullPress(io.Key.A)
     return 0
