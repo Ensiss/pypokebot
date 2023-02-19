@@ -1,5 +1,4 @@
 import utils
-import script
 import enum
 import numpy as np
 import memory; mem = memory.Memory
@@ -262,7 +261,7 @@ class PersonEvent(utils.RawStruct):
     def isVisible(self):
         if self.idx == 0:
             return True
-        return not script.getFlag(self.idx)
+        return not db.getScriptFlag(self.idx)
 
 class ScriptEvent(utils.RawStruct):
     fmt = "2H2B3HI"
