@@ -135,6 +135,9 @@ class Database():
         return (byte & (1 << (flag & 7))) != 0
 
     def getScriptVar(var):
+        if var >= 0x8000:
+            offset = 0x20370b8
+            return mem.readU16(offset + (var - 0x8000) * 2)
         offset = mem.readU32(0x3005008)
         return mem.readU16(offset + 0x1000 + (var - 0x4000) * 2)
 
