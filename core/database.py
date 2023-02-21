@@ -136,8 +136,10 @@ class Database():
 
     def getScriptVar(var):
         if var >= 0x8000:
-            offset = 0x20370b8
-            return mem.readU16(offset + (var - 0x8000) * 2)
+            # 0x80xx variables are scrambled around and not in contiguous memory
+            # The index list from the original source must be accessed
+            offset = mem.readU32(0x0815FD0C + 4*(var - 0x8000))
+            return mem.readU16(offset)
         offset = mem.readU32(0x3005008)
         return mem.readU16(offset + 0x1000 + (var - 0x4000) * 2)
 
