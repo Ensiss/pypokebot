@@ -292,7 +292,7 @@ class CommandCopyVar(Command):
 
 class CommandCopyVarIfNotZero(Command):
     def execute(self, open_ctxs, conditionals, ctx, instr):
-        if Script.isVar(instr.args[1]) or Script.isTemp(instr.args[1]):
+        if Script.isVar(instr.args[1]) or Script.isSpcVar(instr.args[1]):
             CommandCopyVar.execute(self, open_ctxs, conditionals, ctx, instr)
         else:
             CommandSetVar.execute(self, open_ctxs, conditionals, ctx, instr)
@@ -624,8 +624,8 @@ class Script:
     BUFF_COUNT = 0x03
     VAR_OFFSET = 0x4000
     VAR_COUNT = 0x100
-    TEMP_OFFSET = 0x8000
-    TEMP_COUNT = 0x1F
+    SPCVAR_OFFSET = 0x8000
+    SPCVAR_COUNT = 0x1F
     SPCFLAG_OFFSET = 0x4000
     SPCFLAG_COUNT = 0x10
     FACING = 0x800C
@@ -662,9 +662,6 @@ class Script:
     class Var(Storage):
         def __init__(self, val):
             super().__init__("var(0x%x)", val)
-    class Temp(Storage):
-        def __init__(self, val):
-            super().__init__("temp(0x%x)", val)
     class Bank(Storage):
         def __init__(self, val):
             super().__init__("bank(%d)", val)
@@ -680,8 +677,8 @@ class Script:
         return x < Script.BANK_COUNT
     def isVar(x):
         return Script.VAR_OFFSET <= x < Script.VAR_OFFSET + Script.VAR_COUNT
-    def isTemp(x):
-        return Script.TEMP_OFFSET <= x < Script.TEMP_OFFSET + Script.TEMP_COUNT
+    def isSpcVar(x):
+        return Script.SPCVAR_OFFSET <= x < Script.SPCVAR_OFFSET + Script.SPCVAR_COUNT
 
     class Context:
         def __init__(self, other=None):
@@ -690,7 +687,7 @@ class Script:
                 self.flags = np.frombuffer(mem.bufferFromAddr(ptr + 0xEE0)[:Script.FLAG_COUNT >> 3], dtype=np.uint8).copy()
                 self.spcflags = np.zeros(Script.SPCFLAG_COUNT >> 3, dtype=np.uint8)
                 self.variables = np.frombuffer(mem.bufferFromAddr(ptr + 0x1000)[:Script.VAR_COUNT * 2], dtype=np.uint16).copy()
-                self.temps = np.zeros(Script.TEMP_COUNT, dtype=np.uint16)
+                self.spcvars = np.zeros(Script.SPCVAR_COUNT, dtype=np.uint16)
                 self.banks = np.zeros(Script.BANK_COUNT, dtype=np.uint32)
                 self.cmp1 = self.cmp2 = 0
                 self.pc = 0
@@ -704,7 +701,7 @@ class Script:
                 self.flags = other.flags.copy()
                 self.spcflags = other.spcflags.copy()
                 self.variables = other.variables.copy()
-                self.temps = other.temps.copy()
+                self.spcvars = other.spcvars.copy()
                 self.banks = other.banks.copy()
                 self.cmp1 = other.cmp1
                 self.cmp2 = other.cmp2
@@ -751,10 +748,10 @@ class Script:
                 if track:
                     self.inputs.add(Script.Var(idx))
                 return self.variables[idx - Script.VAR_OFFSET]
-            elif Script.isTemp(idx):
+            elif Script.isSpcVar(idx):
                 if track:
-                    self.inputs.add(Script.Temp(idx))
-                return self.temps[idx - Script.TEMP_OFFSET]
+                    self.inputs.add(Script.Var(idx))
+                return self.spcvars[idx - Script.SPCVAR_OFFSET]
             else:
                 return idx
             return 0
@@ -788,10 +785,10 @@ class Script:
                 if track:
                     self.outputs.add(Script.Var(idx))
                 self.variables[idx - Script.VAR_OFFSET] = val
-            elif Script.isTemp(idx):
+            elif Script.isSpcVar(idx):
                 if track:
-                    self.outputs.add(Script.Temp(idx))
-                self.temps[idx - Script.TEMP_OFFSET] = val
+                    self.outputs.add(Script.Var(idx))
+                self.spcvars[idx - Script.SPCVAR_OFFSET] = val
             else:
                 print("Context error: variable %d does not exist" % idx)
 
