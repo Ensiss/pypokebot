@@ -114,6 +114,11 @@ def battleAI():
             print("Best move: %s" % db.battlers[0].moves[move].name)
             yield from battle.attack(move)
         else:
+            # If a pokemon was caught, skip nickname
+            if db.battle_context.curr_instr == 0xF3:
+                yield io.releaseAll()
+                yield from misc.fullPress(core.KEY_B)
+                continue
             yield io.toggle(core.KEY_A)
 
 runGame(Bot(mainAI, battleAI))

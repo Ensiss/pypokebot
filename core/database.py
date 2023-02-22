@@ -95,6 +95,9 @@ class Database():
         Database.global_context = ScriptContext(0x03000EB0)
         Database.immediate_context = ScriptContext(0x03000F28)
 
+        # Battle
+        Database.battle_context = BattleContext()
+
     def plotTypeEffectiveness():
         import matplotlib.pyplot as plt
         from matplotlib.colors import LinearSegmentedColormap
@@ -300,3 +303,23 @@ class ScriptContext(utils.RawStruct, utils.AutoUpdater):
          self.cmd_table_ptr,
          self.cmd_table_max,
          self.data) = self.unpack()
+
+class BattleContext(utils.RawStruct, utils.AutoUpdater):
+    """
+    Various battle-related info
+    """
+    fmt = mem.Unpacker("8B")
+    def __init__(self):
+        super().__init__(0x02023E82)
+
+    def update(self):
+        curr_instr_ptr = mem.readU32(0x02023D74)
+        self.curr_instr = mem.readU8(curr_instr_ptr)
+        (self.multiuse_state,
+         self.cursor, # Shared by task_id and sprite_state1
+         self.sprite_state2,
+         self.move_effect_byte,
+         self.actions_confirmed_count,
+         self.multistr_chooser,
+         self.miss_type,
+         self.msg_display) = self.unpack()
