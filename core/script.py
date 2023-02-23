@@ -939,6 +939,24 @@ class Script:
                 print("", file=out)
             subPrint(addr)
 
+    def searchPrevious(self, next_addr):
+        context = Script.Context()
+        context.initFor(self)
+        conditionals = {}
+        open_ctxs = [context]
+        closed_ctxs = []
+        while len(open_ctxs) > 0:
+            ctx = open_ctxs.pop(0)
+            while True:
+                instr = Instruction(ctx.pc)
+                if instr.next_addr == next_addr:
+                    return instr
+                instr.cmd.explore(open_ctxs, conditionals, ctx, instr)
+                if ctx.do_exit:
+                    closed_ctxs.append(ctx)
+                    break
+        return None
+
     def explore(self):
         context = Script.Context()
         context.initFor(self)
