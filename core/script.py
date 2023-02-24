@@ -858,6 +858,8 @@ class Script:
     def getGeneric(idx, stype, bank_id=-1, map_id=-1):
         def getCached(addr, bank_id, map_id, idx, stype):
             cache_idx = (bank_id, map_id, idx, stype)
+            if addr == 0:
+                return None
             if cache_idx in Script.cache:
                 return Script.cache[cache_idx]
             s = Script(addr, bank_id, map_id, idx, stype)
@@ -897,6 +899,28 @@ class Script:
         return Script.getGeneric(idx, Script.Type.SCRIPT, bank_id, map_id)
     def getMapScript(idx, bank_id=-1, map_id=-1):
         return Script.getGeneric(idx, Script.Type.MAPSCRIPT, bank_id, map_id)
+
+    def getFromNextAddr(next_addr, stack=None):
+        """
+        Search all scripts in current map
+        Return matching script based on next_address and call stack
+        """
+        bid = db.player.bank_id
+        mid = db.player.map_id
+        m = db.banks[bid][mid]
+        typelens = [(Script.Type.PERSON, len(m.persons)),
+                    (Script.Type.SCRIPT, len(m.scripts)),
+                    (Script.Type.MAPSCRIPT, len(m.map_scripts)),
+                    (Script.Type.SIGN, len(m.signs))]
+        for stype, count in typelens:
+            for i in range(count):
+                s = Script.getGeneric(i, stype, bid, mid)
+                if s is None:
+                    continue
+                instr = s.searchPrevious(next_addr, stack)
+                if instr is not None:
+                    return s, instr
+        return None, None
 
     def print(self, out=sys.stdout):
         def alreadyVisited(addr):
@@ -939,7 +963,7 @@ class Script:
                 print("", file=out)
             subPrint(addr)
 
-    def searchPrevious(self, next_addr):
+    def searchPrevious(self, next_addr, stack=None):
         context = Script.Context()
         context.initFor(self)
         conditionals = {}
@@ -949,7 +973,8 @@ class Script:
             ctx = open_ctxs.pop(0)
             while True:
                 instr = Instruction(ctx.pc)
-                if instr.next_addr == next_addr:
+                if (instr.next_addr == next_addr and
+                    (stack is None or tuple(stack) == tuple(ctx.stack))):
                     return instr
                 instr.cmd.explore(open_ctxs, conditionals, ctx, instr)
                 if ctx.do_exit:
