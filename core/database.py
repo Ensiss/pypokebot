@@ -294,15 +294,16 @@ class ScriptContext(utils.RawStruct, utils.AutoUpdater):
         super().__init__(addr)
 
     def update(self):
-        (self.depth,
+        (depth,
          self.mode,
          self.cmp_result,
          self.ptr_asm,
          self.pc,
-         self.stack,
+         raw_stack,
          self.cmd_table_ptr,
          self.cmd_table_max,
          self.data) = self.unpack()
+        self.stack = raw_stack[:depth]
 
 class BattleContext(utils.RawStruct, utils.AutoUpdater):
     """
