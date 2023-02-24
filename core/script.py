@@ -908,17 +908,24 @@ class Script:
         bid = db.player.bank_id
         mid = db.player.map_id
         m = db.banks[bid][mid]
-        typelens = [(Script.Type.PERSON, len(m.persons)),
-                    (Script.Type.SCRIPT, len(m.scripts)),
+        # Search lask talked NPC first
+        local_id = db.getScriptVar(Script.LASTTALKED)
+        if ((local_id > 0 and local_id-1 < len(m.persons)) and
+            (s := Script.getPerson(local_id - 1, bid, mid)) and
+            (instr := s.searchPrevious(next_addr, stack))):
+            return s, instr
+
+        typelens = [(Script.Type.SCRIPT, len(m.scripts)),
                     (Script.Type.MAPSCRIPT, len(m.map_scripts)),
+                    (Script.Type.PERSON, len(m.persons)),
                     (Script.Type.SIGN, len(m.signs))]
         for stype, count in typelens:
             for i in range(count):
-                s = Script.getGeneric(i, stype, bid, mid)
-                if s is None:
+                # Skip already searched LASTTALKED
+                if stype == Script.Type.PERSON and i == local_id-1:
                     continue
-                instr = s.searchPrevious(next_addr, stack)
-                if instr is not None:
+                if ((s := Script.getGeneric(i, stype, bid, mid)) and
+                    (instr := s.searchPrevious(next_addr, stack))):
                     return s, instr
         return None, None
 
