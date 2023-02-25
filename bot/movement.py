@@ -2,7 +2,6 @@ import numpy as np
 import memory; mem = memory.Memory
 import database; db = database.Database
 import core.io; io = core.io.IO
-import script
 import misc
 import world
 
@@ -172,35 +171,6 @@ def toPers(local_id, max_dist=1):
     else:
         return 0
     return (yield from turn(key))
-
-def talkTo(local_id, choices=[]):
-    while db.global_context.pc == 0:
-        yield from toPers(local_id)
-        yield from misc.fullPress(io.Key.A)
-
-    pc = db.global_context.pc
-    pscript, instr = script.Script.getFromNextAddr(pc, db.global_context.stack)
-    while db.global_context.pc != 0:
-        if db.global_context.pc != pc:
-            pc = db.global_context.pc
-            instr = pscript.searchPrevious(pc, db.global_context.stack)
-            yield io.releaseAll()
-
-        if type(instr.cmd) is script.CommandYesNoBox:
-            choice = choices.pop(0) if len(choices) > 0 else 0
-            while db.global_context.pc == pc:
-                yield from misc.fullPress(io.Key.A if choice else io.Key.B)
-            continue
-        elif type(instr.cmd) is script.CommandMultichoice and len(choices) > 0:
-            choice = choices.pop(0) if len(choices) > 0 else 0x7f
-            mcm = db.multi_choice_menu
-            if choice != 0x7f:
-                yield from misc.moveCursor(mcm.columns, choice, lambda: mcm.cursor)
-            while db.global_context.pc == pc:
-                yield from misc.fullPress(io.Key.A if choice != 0x7f else io.Key.B)
-            continue
-        yield io.toggle(io.Key.A)
-    return 0
 
 def toConnection(ctype):
     """
