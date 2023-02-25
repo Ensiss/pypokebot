@@ -85,6 +85,25 @@ class StartMenu(utils.RawStruct, utils.AutoUpdater):
         start_bytes = b"\x00\x16\x01\x07\x0d\x0f\x3d\x01\x60\x2d\x00\x02"
         self.is_open = (dialog == start_bytes)
 
+class MultiChoiceMenu(utils.RawStruct, utils.AutoUpdater):
+    fmt = mem.Unpacker("2B3b6BB")
+    def __init__(self):
+        super().__init__(0x0203ADE4)
+
+    def update(self):
+        (self.left,
+         self.top,
+         self.cursor,
+         self.cursor_min_pos,
+         self.cursor_max_pos,
+         self.window_id,
+         self.font_id,
+         self.option_width,
+         self.option_height,
+         self.columns,
+         self.rows,
+         self.a_press_muted) = self.unpack()
+
 class MultiChoice(utils.RawStruct):
     fmt = "IB3x"
 

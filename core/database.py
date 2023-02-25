@@ -90,6 +90,7 @@ class Database():
         Database.start_menu = menu.StartMenu()
         Database.multi_choices = utils.rawArray(menu.MultiChoice, 0x083E04B0, 0x41)
         Database.party_menu = menu.PartyMenu()
+        Database.multi_choice_menu = menu.MultiChoiceMenu()
 
         # Scripting
         Database.global_context = ScriptContext(0x03000EB0)
