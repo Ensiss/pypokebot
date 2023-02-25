@@ -2,6 +2,7 @@ import numpy as np
 import memory; mem = memory.Memory
 import database; db = database.Database
 import core.io; io = core.io.IO
+import script
 import misc
 import world
 
@@ -141,10 +142,10 @@ def toAny(locs, max_dist=0):
 def toPos(x, y, max_dist=0):
     return (yield from toAny(np.array([[x, y]]), max_dist))
 
-def toPers(person_id, max_dist=1):
+def toPers(local_id, max_dist=1):
     def _getTargetPos(p_id):
         m = db.getCurrentMap()
-        pers = m.persons[p_id]
+        pers = m.persons[p_id-1]
         for i in range(1, len(db.ows)):
             ow = db.ows[i]
             if ow.map_id == 0 and ow.bank_id == 0:
@@ -154,9 +155,52 @@ def toPers(person_id, max_dist=1):
                 return np.array([ow.dest_x, ow.dest_y])
         return np.array([pers.x, pers.y])
 
-    tgt_func = lambda: _getTargetPos(person_id)
+    tgt_func = lambda: _getTargetPos(local_id)
     dist_func = lambda n, tgt: np.linalg.norm(tgt - [n.x, n.y], ord=1)
-    return (yield from to(tgt_func, dist_func, max_dist))
+    if (yield from to(tgt_func, dist_func, max_dist)) == -1:
+        return -1
+    tx, ty = _getTargetPos(local_id)
+    px, py = db.player.x, db.player.y
+    if px < tx:
+        key = io.Key.RIGHT
+    elif px > tx:
+        key = io.Key.LEFT
+    elif py < ty:
+        key = io.Key.DOWN
+    elif py > ty:
+        key = io.Key.UP
+    else:
+        return 0
+    return (yield from turn(key))
+
+def talkTo(local_id, choices=[]):
+    while db.global_context.pc == 0:
+        yield from toPers(local_id)
+        yield from misc.fullPress(io.Key.A)
+
+    pc = db.global_context.pc
+    pscript, instr = script.Script.getFromNextAddr(pc, db.global_context.stack)
+    while db.global_context.pc != 0:
+        if db.global_context.pc != pc:
+            pc = db.global_context.pc
+            instr = pscript.searchPrevious(pc, db.global_context.stack)
+            yield io.releaseAll()
+
+        if type(instr.cmd) is script.CommandYesNoBox:
+            choice = choices.pop(0) if len(choices) > 0 else 0
+            while db.global_context.pc == pc:
+                yield from misc.fullPress(io.Key.A if choice else io.Key.B)
+            continue
+        elif type(instr.cmd) is script.CommandMultichoice and len(choices) > 0:
+            choice = choices.pop(0) if len(choices) > 0 else 0x7f
+            mcm = db.multi_choice_menu
+            if choice != 0x7f:
+                yield from misc.moveCursor(mcm.columns, choice, lambda: mcm.cursor)
+            while db.global_context.pc == pc:
+                yield from misc.fullPress(io.Key.A if choice != 0x7f else io.Key.B)
+            continue
+        yield io.toggle(io.Key.A)
+    return 0
 
 def toConnection(ctype):
     """
