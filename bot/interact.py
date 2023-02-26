@@ -14,11 +14,13 @@ def doInteraction(choices=[]):
     pc = db.global_context.pc
     if pc == 0:
         return -1
+    locked_counter = 0
     pscript, instr = script.Script.getFromNextAddr(pc, db.global_context.stack)
     while db.global_context.pc != 0:
         if db.global_context.pc != pc:
             pc = db.global_context.pc
             instr = pscript.searchPrevious(pc, db.global_context.stack)
+            locked_counter = 0
             yield io.releaseAll()
 
         if type(instr.cmd) is script.CommandYesNoBox:
@@ -26,7 +28,7 @@ def doInteraction(choices=[]):
             while db.global_context.pc == pc:
                 yield from misc.fullPress(io.Key.A if choice else io.Key.B)
             continue
-        elif type(instr.cmd) is script.CommandMultichoice and len(choices) > 0:
+        elif type(instr.cmd) is script.CommandMultichoice:
             choice = choices.pop(0) if len(choices) > 0 else 0x7f
             mcm = db.multi_choice_menu
             if choice != 0x7f:
@@ -34,7 +36,27 @@ def doInteraction(choices=[]):
             while db.global_context.pc == pc:
                 yield from misc.fullPress(io.Key.A if choice != 0x7f else io.Key.B)
             continue
-        yield io.toggle(io.Key.A)
+
+        elif instr.opcode == 0x66: # waitmsg
+            # Spamming the A button bleeds inputs into yesnobox and multichoice
+            # so we need to only press A when needed
+            if (ptr := mem.readU32(0x02020034)) != 0:
+                pokebyte = mem.readU8(ptr - 1) # Last text byte
+                if pokebyte in [0xFA, 0xFB]:
+                    yield from misc.fullPress(io.Key.A)
+                    continue
+        elif instr.opcode == 0x6D: # waitkeypress
+            yield from misc.fullPress(io.Key.A)
+            continue
+
+        locked_counter += 1
+        if locked_counter >= 1000:
+            print("doInteraction stuck in instruction, trying to continue...")
+            print("0x%08X: %s" % (instr.addr, str(instr)))
+            locked_counter = 0
+            yield from misc.fullPress(io.Key.A)
+            continue
+        yield
     return 0
 
 def talkTo(local_id, choices=[]):
