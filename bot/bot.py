@@ -6,11 +6,13 @@ import misc
 import numpy as np
 
 class Bot():
-    def __init__(self, main_fun, battle_fun):
+    def __init__(self, main_fun, battle_fun, interact_fun=None):
         self.main_fun = main_fun
         self.script = main_fun()
         self.battle_fun = battle_fun
         self.battle_script = battle_fun()
+        self.interact_fun = interact_fun
+        self.interact_script = None
         self.was_in_battle = False
         self.wait_after_battle = 30
         self.saved_keys = 0
@@ -72,6 +74,18 @@ class Bot():
                     yield from misc.wait(self.wait_after_battle)
                     io.setRaw(self.saved_keys)
                 self.was_in_battle = not self.was_in_battle
+
+            # Automatically handle npc interactions
+            if self.interact_script:
+                try:
+                    next(self.interact_script)
+                except StopIteration:
+                    self.interact_script = None
+                yield
+                continue
+            elif db.global_context.pc != 0:
+                self.interact_script = self.interact_fun()
+                continue
 
             curr_script = self.battle_script if db.isInBattle() else self.script
             if curr_script is not None:
