@@ -20,6 +20,20 @@ def turn(btn):
     yield from misc.waitWhile(lambda: db.getPlayerState() == db.PlayerState.TURN)
     return 0
 
+def turnTowards(tx, ty):
+    px, py = db.player.x, db.player.y
+    if px < tx:
+        key = io.Key.RIGHT
+    elif px > tx:
+        key = io.Key.LEFT
+    elif py < ty:
+        key = io.Key.DOWN
+    elif py > ty:
+        key = io.Key.UP
+    else:
+        return 0
+    return (yield from turn(key))
+
 def step(btn):
     def _isValid(m, btn, xend, yend):
         if (xend < 0 or xend >= m.width or
@@ -141,6 +155,11 @@ def toAny(locs, max_dist=0):
 def toPos(x, y, max_dist=0):
     return (yield from toAny(np.array([[x, y]]), max_dist))
 
+def toSign(idx, max_dist=1):
+    sign = db.getCurrentMap().signs[idx]
+    yield from toPos(sign.x, sign.y, max_dist)
+    return (yield from turnTowards(sign.x, sign.y))
+
 def toPers(local_id, max_dist=1):
     def _getTargetPos(p_id):
         m = db.getCurrentMap()
@@ -159,18 +178,7 @@ def toPers(local_id, max_dist=1):
     if (yield from to(tgt_func, dist_func, max_dist)) == -1:
         return -1
     tx, ty = _getTargetPos(local_id)
-    px, py = db.player.x, db.player.y
-    if px < tx:
-        key = io.Key.RIGHT
-    elif px > tx:
-        key = io.Key.LEFT
-    elif py < ty:
-        key = io.Key.DOWN
-    elif py > ty:
-        key = io.Key.UP
-    else:
-        return 0
-    return (yield from turn(key))
+    return (yield from turnTowards(tx, ty))
 
 def toConnection(ctype):
     """

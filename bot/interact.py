@@ -59,6 +59,15 @@ def doInteraction(choices=[]):
         yield
     return 0
 
+def readSign(sign_id, choices=[]):
+    """
+    Move to and interact with a sign event, optionally with predefined choices
+    """
+    while db.global_context.pc == 0:
+        yield from movement.toSign(sign_id)
+        yield from misc.fullPress(io.Key.A)
+    return (yield from doInteraction(choices))
+
 def talkTo(local_id, choices=[]):
     """
     Move to and talk to an NPC, optionally with predefined choices
