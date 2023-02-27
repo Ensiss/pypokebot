@@ -2,6 +2,7 @@ import numpy as np
 import memory; mem = memory.Memory
 import database; db = database.Database
 import core.io; io = core.io.IO
+from bot import Bot
 import script
 import misc
 import movement
@@ -19,9 +20,16 @@ def doInteraction(choices=[]):
     while db.global_context.pc != 0:
         if db.global_context.pc != pc:
             pc = db.global_context.pc
-            instr = pscript.searchPrevious(pc, db.global_context.stack)
+            if pscript is None:
+                pscript, instr = script.Script.getFromNextAddr(pc, db.global_context.stack)
+            else:
+                instr = pscript.searchPrevious(pc, db.global_context.stack)
             locked_counter = 0
             yield io.releaseAll()
+
+        if instr is None:
+            yield io.toggle(io.Key.A)
+            continue
 
         if type(instr.cmd) is script.CommandYesNoBox:
             choice = choices.pop(0) if len(choices) > 0 else 0
@@ -63,16 +71,20 @@ def readSign(sign_id, choices=[]):
     """
     Move to and interact with a sign event, optionally with predefined choices
     """
+    Bot.instance.tgt_script = script.Script.getSign(sign_id)
     while db.global_context.pc == 0:
         yield from movement.toSign(sign_id)
         yield from misc.fullPress(io.Key.A)
-    return (yield from doInteraction(choices))
+    yield from doInteraction(choices)
+    Bot.instance.tgt_script = None
 
 def talkTo(local_id, choices=[]):
     """
     Move to and talk to an NPC, optionally with predefined choices
     """
+    Bot.instance.tgt_script = script.Script.getPerson(local_id-1)
     while db.global_context.pc == 0:
         yield from movement.toPers(local_id)
         yield from misc.fullPress(io.Key.A)
-    return (yield from doInteraction(choices))
+    yield from doInteraction(choices)
+    Bot.instance.tgt_script = None

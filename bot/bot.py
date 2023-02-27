@@ -2,6 +2,7 @@ import sys
 import memory; mem = memory.Memory
 import database; db = database.Database
 import core.io; io = core.io.IO
+from script import Script
 import misc
 import numpy as np
 
@@ -16,6 +17,8 @@ class Bot():
         self.was_in_battle = False
         self.wait_after_battle = 30
         self.saved_keys = 0
+        self.tgt_script = None # Next script manually handled by the user
+        Bot.instance = self
 
     def getWeakenMove():
         """
@@ -75,7 +78,14 @@ class Bot():
                     io.setRaw(self.saved_keys)
                 self.was_in_battle = not self.was_in_battle
 
-            # Automatically handle npc interactions
+            # If in a battle
+            if db.isInBattle():
+                if (ret := next(self.battle_script, -1)) == -1:
+                    return -1
+                yield ret
+                continue
+
+            # If in an auto-interaction, finish it
             if self.interact_script:
                 try:
                     next(self.interact_script)
@@ -83,15 +93,19 @@ class Bot():
                     self.interact_script = None
                 yield
                 continue
-            elif db.global_context.pc != 0:
-                self.interact_script = self.interact_fun()
-                continue
 
-            curr_script = self.battle_script if db.isInBattle() else self.script
-            if curr_script is not None:
-                ret = next(curr_script, -1)
-                if ret == -1:
+            # If a new interaction just started and it was not already user-scheduled,
+            # start it as an auto-interaction
+            if db.global_context.pc != 0 and self.interact_fun:
+                pscript, instr = Script.getFromNextAddr(db.global_context.pc, db.global_context.stack)
+                if not self.tgt_script or pscript != self.tgt_script:
+                    self.interact_script = self.interact_fun()
+                    continue
+
+            # In other cases, run the normal script
+            if self.script:
+                if (ret := next(self.script, -1)) == -1:
                     return -1
                 yield ret
-            else:
-                yield
+                continue
+            yield
