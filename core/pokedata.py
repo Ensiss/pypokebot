@@ -187,6 +187,8 @@ class PokemonData(IPokeData):
          self.evs,
          self.misc) = subs
 
+        if self.growth.species_idx > len(db.species):
+            self.growth.species_idx = 0
         self.species = db.species[self.growth.species_idx]
 
 class Growth(utils.RawStruct):
@@ -204,7 +206,7 @@ class Attacks(utils.RawStruct):
     def __init__(self, addr, buf):
         (self.move_ids,
          self.pps) = super().__init__(addr, buf)
-        self.moves = [db.moves[idx] for idx in self.move_ids if idx != 0]
+        self.moves = [db.moves[idx] for idx in self.move_ids if 0 < idx < len(db.moves)]
 
 class EVs(utils.RawStruct):
     fmt = "12B"
