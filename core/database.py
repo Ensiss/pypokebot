@@ -122,6 +122,11 @@ class Database():
         """
         return mem.readU8(0x203707A)
 
+    def getLastByte():
+        if (ptr := mem.readU32(0x02020034)) != 0:
+            return mem.readU8(ptr - 1) # Last text byte
+        return 0xff
+
     def getCurrentMap():
         return Database.banks[Database.player.bank_id][Database.player.map_id]
 

@@ -48,11 +48,9 @@ def doInteraction(choices=[]):
         elif instr.opcode == 0x66: # waitmsg
             # Spamming the A button bleeds inputs into yesnobox and multichoice
             # so we need to only press A when needed
-            if (ptr := mem.readU32(0x02020034)) != 0:
-                pokebyte = mem.readU8(ptr - 1) # Last text byte
-                if pokebyte in [0xFA, 0xFB]:
-                    yield from misc.fullPress(io.Key.A)
-                    continue
+            if db.getLastByte() in [0xFA, 0xFB]:
+                yield from misc.fullPress(io.Key.A)
+                continue
         elif instr.opcode == 0x6D: # waitkeypress
             yield from misc.fullPress(io.Key.A)
             continue
