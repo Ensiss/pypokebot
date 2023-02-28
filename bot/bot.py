@@ -64,6 +64,20 @@ class Bot():
                 mindmg = dmg[0]
         return best
 
+    def getBestMon():
+        """
+        TODO: consider type advantage
+        """
+        best_id = 0
+        for i, pkmn in enumerate(db.pteam):
+            if pkmn.growth.species_idx == 0:
+                break
+            if pkmn.curr_hp == 0:
+                continue
+            if pkmn.curr_hp > db.pteam[best_id].curr_hp:
+                best_id = i
+        return best_id
+
     def onPreFrame(self):
         while True:
             if db.isInBattle() != self.was_in_battle:
