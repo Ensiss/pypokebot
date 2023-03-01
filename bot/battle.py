@@ -3,6 +3,11 @@ import database; db = database.Database
 import core.io; io = core.io.IO
 import misc
 import item
+import ui
+
+def waitMainScreen():
+    cond = lambda: db.battle_menu.is_open and db.battle_menu.menu == 0
+    yield from misc.waitUntil(cond, skip_text=True)
 
 def attack(atk_id):
     bm = db.battle_menu
@@ -40,7 +45,6 @@ def switch(index):
     Will return if the pokemon is already out or the index is invalid
     """
     bm = db.battle_menu
-    pm = db.party_menu
 
     if index == 0 or index >= db.getPartySize():
         return -1
@@ -53,10 +57,8 @@ def switch(index):
     # Wait animation
     yield from misc.wait(75)
     # Select party member
-    yield from misc.fullPress(io.Key.RIGHT)
-    yield from misc.moveCursor(1, index, lambda: pm.cursor)
-    for i in range(2):
-        yield from misc.fullPress(io.Key.A)
+    yield from ui.partyMenuSelect(index)
+    yield from misc.fullPress(io.Key.A)
     return 0
 
 def flee():
