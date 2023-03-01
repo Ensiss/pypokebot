@@ -20,7 +20,7 @@ def partyMenuSelect(index):
     yield from misc.fullPress(io.Key.A)
     return 0
 
-def waitForPartyMenu():
+def waitPartyMenu():
     """
     Wait for the pokemon selection menu to be open
     Done by waiting until pressing the keys changes the party menu cursor

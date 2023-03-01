@@ -20,7 +20,9 @@ import database; db = database.Database
 import core.io; io = core.io.IO
 import misc
 import movement
+import interact
 import battle
+import ui
 from script import Script
 from bot import Bot
 
@@ -97,8 +99,16 @@ def battleAI():
     enemy = db.eteam[0]
     print(db.pteam[0].species.name, "vs", enemy.species.name)
 
+    ref = tuple(db.party_menu.window_id)
+    yield from battle.waitMainScreen()
     while True:
-        if db.battle_menu.is_open and db.battle_menu.menu == 0:
+        if db.battlers[0].curr_hp == 0:
+            yield from ui.waitPartyMenu()
+            yield from ui.partyMenuSelect(Bot.getBestMon())
+            yield from misc.wait(5)
+            yield from misc.fullPress(io.Key.A)
+            yield from battle.waitMainScreen()
+        elif db.battle_menu.is_open and db.battle_menu.menu == 0:
             print("Catch rate:", enemy.catchRate(db.items.poke_ball))
             # If the pokemon has not been caught yet, try to catch it
             if not db.pokedex.hasOwned(enemy.growth.species_idx):
@@ -121,6 +131,6 @@ def battleAI():
                 continue
             yield io.toggle(core.KEY_A)
 
-runGame(Bot(mainAI, battleAI))
+runGame(Bot(mainAI, battleAI, interact.doInteraction))
 pygame.display.quit()
 m = db.getCurrentMap()
