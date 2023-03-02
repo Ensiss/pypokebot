@@ -102,11 +102,20 @@ def battleAI():
     ref = tuple(db.party_menu.window_id)
     yield from battle.waitMainScreen()
     while True:
-        if db.battlers[0].curr_hp == 0:
+        if db.battlers[0].curr_hp == 0 and db.getPartySize(only_alive=True) > 0:
             yield from ui.waitPartyMenu()
             yield from ui.partyMenuSelect(Bot.getBestMon())
             yield from misc.wait(5)
             yield from misc.fullPress(io.Key.A)
+            yield from battle.waitMainScreen()
+        elif (db.battlers[1].curr_hp == 0 and # Enemy fainted, handle swap out
+              db.getPartySize(enemy=True, only_alive=True) > 0 and
+              db.getPartySize(enemy=False, only_alive=True) > 1):
+            while db.battle_context.curr_instr != 0x67: # Yes/no swap question
+                yield io.toggle(io.Key.A)
+            yield io.releaseAll()
+            # TODO: swap out based on enemy poke being sent
+            yield from misc.fullPress(io.Key.B)
             yield from battle.waitMainScreen()
         elif db.battle_menu.is_open and db.battle_menu.menu == 0:
             print("Catch rate:", enemy.catchRate(db.items.poke_ball))
