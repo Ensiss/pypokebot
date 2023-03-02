@@ -130,12 +130,14 @@ class Database():
     def getCurrentMap():
         return Database.banks[Database.player.bank_id][Database.player.map_id]
 
-    def getPartySize():
+    def getPartySize(enemy=False, only_alive=False):
+        team = Database.eteam if enemy else Database.pteam
         sz = 0
-        for ppoke in Database.pteam:
+        for ppoke in team:
             if ppoke.growth.species_idx == 0:
                 break
-            sz += 1
+            if not only_alive or ppoke.curr_hp > 0:
+                sz += 1
         return sz
 
     def getScriptFlag(flag):
