@@ -713,6 +713,22 @@ class Script:
                 self.choices = other.choices.copy()
                 self.parent = other.parent
 
+        def getFilteredOutput(self):
+            out = []
+            for var in self.outputs:
+                if type(var) in [Script.Bank, Script.Buffer]:
+                    continue
+                elif type(var) is Script.Var:
+                    if (Script.isSpcVar(int(var)) or # Special vars
+                        int(var) < 0x4010): # Temp vars
+                        continue
+                elif type(var) is Script.Var:
+                    if (Script.isSpcFlag(int(var)) or # Special flags
+                        int(var) < 0x20): # Temp flags
+                        continue
+                out.append(var)
+            return out
+
         def initFor(self, parent):
             self.parent = parent
             self.pc = parent.addr
