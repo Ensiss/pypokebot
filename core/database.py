@@ -112,6 +112,8 @@ class Database():
 
     def isInBattle():
         return mem.readU32(0x30030F0) == 0x80123E5
+    def isInteracting():
+        return Database.global_context.pc != 0
 
     def getPlayerState():
         """

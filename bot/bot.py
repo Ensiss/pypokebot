@@ -16,6 +16,7 @@ class Bot():
         self.interact_script = None
         self.was_in_battle = False
         self.wait_after_battle = 30
+        self.was_interacting = False
         self.saved_keys = 0
         self.tgt_script = None # Next script manually handled by the user
         Bot.instance = self
@@ -108,13 +109,20 @@ class Bot():
                 yield
                 continue
 
-            # If a new interaction just started and it was not already user-scheduled,
-            # start it as an auto-interaction
-            if db.global_context.pc != 0 and self.interact_fun:
-                pscript, instr = Script.getFromNextAddr(db.global_context.pc, db.global_context.stack)
-                if not self.tgt_script or pscript != self.tgt_script:
-                    self.interact_script = self.interact_fun()
-                    continue
+            if db.isInteracting() != self.was_interacting:
+                # Entering new interaction
+                if not self.was_interacting:
+                    pscript, instr = Script.getFromNextAddr(db.global_context.pc,
+                                                            db.global_context.stack)
+                    # If the interaction was not manually triggered, auto handle
+                    if (self.interact_fun and (not self.tgt_script or
+                                               pscript != self.tgt_script)):
+                        self.interact_script = self.interact_fun()
+                # Finishing an interaction
+                else:
+                    pass
+                self.was_interacting = not self.was_interacting
+                continue
 
             # In other cases, run the normal script
             if self.script:
