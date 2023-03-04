@@ -713,9 +713,9 @@ class Script:
                 self.choices = other.choices.copy()
                 self.parent = other.parent
 
-        def getFilteredOutput(self):
+        def getFiltered(self, varlist):
             out = []
-            for var in self.outputs:
+            for var in varlist:
                 if type(var) in [Script.Bank, Script.Buffer]:
                     continue
                 elif type(var) is Script.Var:
@@ -728,6 +728,10 @@ class Script:
                         continue
                 out.append(var)
             return out
+        def getFilteredOutputs(self):
+            return self.getFiltered(self.outputs)
+        def getFilteredInputs(self):
+            return self.getFiltered(self.inputs)
 
         def initFor(self, parent):
             self.parent = parent
