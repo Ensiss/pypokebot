@@ -201,17 +201,17 @@ class Memory(object):
         return unpacker.unpack(buf, addr & 0xFFFFFF)
 
     def readU8(addr, buf=None):
-        return Memory.unpack(addr, "B", buf)[0]
+        return Memory.unpackRaw(addr, "B", buf)[0]
     def readU16(addr, buf=None):
-        return Memory.unpack(addr, "H", buf)[0]
+        return Memory.unpackRaw(addr, "H", buf)[0]
     def readU32(addr, buf=None):
-        return Memory.unpack(addr, "I", buf)[0]
+        return Memory.unpackRaw(addr, "I", buf)[0]
     def readS8(addr, buf=None):
-        return Memory.unpack(addr, "b", buf)[0]
+        return Memory.unpackRaw(addr, "b", buf)[0]
     def readS16(addr, buf=None):
-        return Memory.unpack(addr, "h", buf)[0]
+        return Memory.unpackRaw(addr, "h", buf)[0]
     def readS32(addr, buf=None):
-        return Memory.unpack(addr, "i", buf)[0]
+        return Memory.unpackRaw(addr, "i", buf)[0]
     def readPokeStr(addr, delim=b'\xff', max_sz=-1, buf=None):
         """
         Read and decode a Poke string at 'addr',
@@ -237,6 +237,10 @@ class Memory(object):
             out.append(utils.pokeToAscii(buf[addr:addr+str_sz]))
             addr += str_sz
         return out
+    def readBuffer(addr, sz, buf=None):
+        buf = Memory.bufferFromAddr(addr, buf)
+        addr = addr & 0xFFFFFF
+        return buf[addr:addr+sz]
 
     def hexdump(addr, sz, buf=None):
         buf = Memory.bufferFromAddr(addr, buf)
