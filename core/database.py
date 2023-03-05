@@ -142,12 +142,26 @@ class Database():
                 sz += 1
         return sz
 
+    def getScriptFlags():
+        """ Return all scripting flags as a bool array """
+        addr = mem.readU32(0x3005008) + 0xEE0
+        raw = np.frombuffer(mem.readBuffer(addr, 0x900//8), dtype=np.uint8)
+        out = np.zeros((8, len(raw)), dtype=bool)
+        for i in range(8):
+            out[i,:] = raw & (1 << i)
+        return out.T.flatten()
     def getScriptFlag(flag):
+        """ Return a single scripting flag """
         offset = mem.readU32(0x3005008)
         byte = mem.readU8(offset + 0xEE0 + (flag >> 3))
         return (byte & (1 << (flag & 7))) != 0
 
+    def getScriptVars():
+        """ Return all scripting vars as a uint16 array """
+        addr = mem.readU32(0x3005008)+0x1000
+        return np.frombuffer(mem.readBuffer(addr, 0x100*2), dtype=np.uint16)
     def getScriptVar(var):
+        """ Return a single scripting var or special var """
         if var >= 0x8000:
             # 0x80xx variables are scrambled around and not in contiguous memory
             # The index list from the original source must be accessed
