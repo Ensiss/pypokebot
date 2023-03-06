@@ -80,6 +80,8 @@ class Bot():
         return best_id
 
     def onPreFrame(self):
+        flags_old = None
+        vars_old = None
         while True:
             if db.isInBattle() != self.was_in_battle:
                 if not self.was_in_battle:
@@ -112,6 +114,8 @@ class Bot():
             if db.isInteracting() != self.was_interacting:
                 # Entering new interaction
                 if not self.was_interacting:
+                    flags_old = db.getScriptFlags()
+                    vars_old = db.getScriptVars()
                     pscript, instr = Script.getFromNextAddr(db.global_context.pc,
                                                             db.global_context.stack)
                     # If the interaction was not manually triggered, auto handle
@@ -120,7 +124,14 @@ class Bot():
                         self.interact_script = self.interact_fun()
                 # Finishing an interaction
                 else:
-                    pass
+                    flags_new = db.getScriptFlags()
+                    vars_new = db.getScriptVars()
+                    flags_changed = np.where(flags_new != flags_old)[0]
+                    vars_changed = np.where(vars_new != vars_old)[0]
+                    changed = [Script.Flag(x) for x in flags_changed]
+                    changed += [Script.Var(0x4000+x) for x in vars_changed]
+                    if len(changed):
+                        print(", ".join([str(x) for x in changed]))
                 self.was_interacting = not self.was_interacting
                 continue
 
