@@ -834,6 +834,7 @@ class Script:
         self.type = Script.Type.NONE
         if stype != -1:
             self.type = stype
+        self.key = (bid, mid, idx, self.type)
         self.addr = addr
         self.ctxs = self.explore()
         self.outflags = set()
@@ -853,12 +854,8 @@ class Script:
         for bid, bank in enumerate(db.banks):
             for mid, m in enumerate(bank):
                 for idx in range(len(m.persons)):
-                    if m.persons[idx].script_ptr == 0:
-                        continue
                     Script.getPerson(idx, bid, mid)
                 for idx in range(len(m.signs)):
-                    if m.signs[idx].type != 0: # Hidden items
-                        continue
                     Script.getSign(idx, bid, mid)
                 for idx in range(len(m.scripts)):
                     Script.getScript(idx, bid, mid)
@@ -878,11 +875,12 @@ class Script:
     def getGeneric(idx, stype, bank_id=-1, map_id=-1):
         def getCached(addr, bank_id, map_id, idx, stype):
             cache_idx = (bank_id, map_id, idx, stype)
-            if addr == 0:
-                return None
             if cache_idx in Script.cache:
                 return Script.cache[cache_idx]
-            s = Script(addr, bank_id, map_id, idx, stype)
+            if addr == 0:
+                s = None
+            else:
+                s = Script(addr, bank_id, map_id, idx, stype)
             Script.cache[cache_idx] = s
             return s
 
@@ -900,6 +898,8 @@ class Script:
             addr = m.persons[idx].script_ptr
         elif stype == Script.Type.SIGN and idx < len(m.signs):
             addr = m.signs[idx].script_ptr
+            if m.signs[idx].type != 0: # Hidden items
+                addr = 0
         elif stype == Script.Type.SCRIPT and idx < len(m.scripts):
             addr = m.scripts[idx].script_ptr
         elif stype == Script.Type.MAPSCRIPT and idx < len(m.map_scripts):
