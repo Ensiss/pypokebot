@@ -120,7 +120,8 @@ def battleAI():
         elif db.battle_menu.is_open and db.battle_menu.menu == 0:
             print("Catch rate:", enemy.catchRate(db.items.poke_ball))
             # If the pokemon has not been caught yet, try to catch it
-            if not db.pokedex.hasOwned(enemy.growth.species_idx):
+            if (not db.pokedex.hasOwned(enemy.growth.species_idx) and
+                db.battle_context.isCatchable()):
                 move = Bot.getWeakenMove()
                 pokeball = db.items.poke_ball
                 if db.bag.hasItem(pokeball):

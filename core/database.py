@@ -12,6 +12,29 @@ class Database():
         TURN = enum.auto()
         WALK = enum.auto()
 
+    class BattleType(enum.IntEnum):
+        DOUBLE = 1 << 0
+        LINK = 1 << 1
+        IS_MASTER = 1 << 2 # In not-link battles, it's always set.
+        TRAINER = 1 << 3
+        FIRST_BATTLE = 1 << 4
+        LINK_IN_BATTLE = 1 << 5 # Set on battle entry, cleared on exit
+        MULTI = 1 << 6
+        SAFARI = 1 << 7
+        BATTLE_TOWER = 1 << 8
+        OLD_MAN_TUTORIAL = 1 << 9
+        ROAMER = 1 << 10
+        EREADER_TRAINER = 1 << 11
+        KYOGRE_GROUDON = 1 << 12
+        LEGENDARY = 1 << 13
+        GHOST_UNVEILED = 1 << 13 # Re-use of LEGENDARY, when combined with GHOST
+        REGI = 1 << 14
+        GHOST = 1 << 15
+        POKEDUDE = 1 << 16
+        WILD_SCRIPTED = 1 << 17
+        LEGENDARY_FRLG = 1 << 18
+        TRAINER_TOWER = 1 << 19
+
     def init():
         Database.species_names = mem.readPokeList(0x8245EE0, 11, b'\xae\xff')
         Database.move_names = mem.readPokeList(0x8247094, 13, b'\x00')
@@ -348,3 +371,9 @@ class BattleContext(utils.RawStruct, utils.AutoUpdater):
          self.multistr_chooser,
          self.miss_type,
          self.msg_display) = self.unpack()
+        self.battle_type = mem.readU32(0x02022B4C)
+
+    def isCatchable(self):
+        bt = Database.BattleType
+        uncatch = (bt.GHOST | bt.TRAINER | bt.POKEDUDE | bt.OLD_MAN_TUTORIAL)
+        return not (self.battle_type & uncatch)
