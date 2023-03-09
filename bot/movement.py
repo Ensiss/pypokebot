@@ -208,10 +208,12 @@ def toConnection(ctype):
     return 0
 
 _warp_behaviors = {
+    0x60: io.Key.UP,    # Cave door
     0x62: io.Key.RIGHT, # Warp to block right
     0x63: io.Key.LEFT,  # Warp to block left
     0x64: io.Key.UP,    # Warp to block up
     0x65: io.Key.DOWN,  # Warp to block down
+    0x65: io.Key.UP,    # Door
     0x6A: io.Key.LEFT,  # Pokecenter stairs up
     0x6B: io.Key.RIGHT, # Pokecenter stairs down
     0x6C: io.Key.RIGHT, # Stairs up right
@@ -227,6 +229,8 @@ def toWarp(warp_id):
     if (yield from toPos(warp.x, warp.y, max_dist)) == -1:
         return -1
 
+    if p.bank_id == warp.dest_bank and p.map_id == warp.dest_map:
+        return 0
     key = None
     if p.x == warp.x and p.y == warp.y:
         key = _warp_behaviors[m.map_behavior[warp.y, warp.x]]
