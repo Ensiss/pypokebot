@@ -489,10 +489,19 @@ class CommandTrainerBattle(Command):
         return self.fmt[:3+nptrs]
 
     def explore(self, open_ctxs, conditionals, ctx, instr):
+        ctx.getFlag(ctx.getVar(instr.args[1]) + 0x500)
+        ctx.setFlag(ctx.getVar(instr.args[1]) + 0x500, 1)
         if instr.args[0] == 1 or instr.args[0] == 2:
             jump_ctx = ctx.copyTo(open_ctxs)
             jump_ctx.pc = instr.args[5]
         Command.execute(self, open_ctxs, conditionals, ctx, instr)
+
+    def execute(self, open_ctxs, conditionals, ctx, instr):
+        ctx.pc = instr.next_addr
+        if ctx.getFlag(ctx.getVar(instr.args[1]) + 0x500) == 0:
+            ctx.setFlag(ctx.getVar(instr.args[1]) + 0x500, 1)
+            if instr.args[0] == 1 or instr.args[0] == 2:
+                ctx.pc = instr.args[5]
 
 class CommandCheckTrainerFlag(Command):
     def execute(self, open_ctxs, conditionals, ctx, instr):
