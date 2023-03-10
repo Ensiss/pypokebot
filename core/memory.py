@@ -67,7 +67,7 @@ class Memory(object):
             self.groups = []
             self.decode_list = []
             self.parse(fmt)
-            self.size = struct.calcsize(self.native_fmt)
+            self.size = struct.calcsize("<"+self.native_fmt)
 
         def unpack(self, buf, addr):
             unpacked = list(struct.unpack_from("<"+self.native_fmt, buf, addr))

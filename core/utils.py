@@ -17,7 +17,7 @@ class RawStruct:
     def calcSize(cls):
         if type(cls.fmt) is mem.Unpacker:
             return cls.fmt.size
-        return struct.calcsize(cls.fmt)
+        return struct.calcsize("<"+cls.fmt)
 
 class AutoUpdater:
     """
@@ -67,7 +67,7 @@ class AutoUpdater:
 def rawArray(struct_cls, addr, count, size=-1):
     if size == -1:
         if type(struct_cls.fmt) is str:
-            size = struct.calcsize(struct_cls.fmt.replace("S", "s"))
+            size = struct.calcsize("<"+struct_cls.fmt.replace("S", "s"))
         else:
             size = struct_cls.calcSize()
     return [struct_cls(addr+i*size) for i in range(count)]
