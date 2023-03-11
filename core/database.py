@@ -44,6 +44,7 @@ class Database():
         Database.moves = NamedDataList([Move(0x08250C04+i*12, n) for i, n in enumerate(Database.move_names)])
         Database.species = NamedDataList([Species(0x08254784+i*28, n) for i, n in enumerate(Database.species_names)])
         Database.items = NamedDataList(utils.rawArray(Item, 0x083DB028, 375))
+        Database.trainers = utils.rawArray(Trainer, 0x0823EAC8, 743)
 
         # Type effectiveness chart
         Database.type_chart = np.ones((18, 18))
@@ -377,3 +378,58 @@ class BattleContext(utils.RawStruct, utils.AutoUpdater):
         bt = Database.BattleType
         uncatch = (bt.GHOST | bt.TRAINER | bt.POKEDUDE | bt.OLD_MAN_TUTORIAL)
         return not (self.battle_type & uncatch)
+
+class Trainer(utils.RawStruct):
+    class PartyFlag(enum.IntEnum):
+        CUSTOM_MOVESET = 1 << 0
+        HELD_ITEM = 1 << 1
+    class MonNoItemDefaultMoves(utils.RawStruct):
+        fmt = mem.Unpacker("HBxH2x")
+        def __init__(self, addr):
+            (self.iv,
+             self.lvl,
+             species_idx) = super().__init__(addr)
+            self.species = Database.species[species_idx]
+    class MonItemDefaultMoves(utils.RawStruct):
+        fmt = mem.Unpacker("HBxHH")
+        def __init__(self, addr):
+            (self.iv,
+             self.lvl,
+             species_idx,
+             self.item_idx) = super().__init__(addr)
+            self.species = Database.species[species_idx]
+    class MonNoItemCustomMoves(utils.RawStruct):
+        fmt = mem.Unpacker("HBxH[4H]2x")
+        def __init__(self, addr):
+            (self.iv,
+             self.lvl,
+             species_idx,
+             self.moves_idx) = super().__init__(addr)
+            self.species = Database.species[species_idx]
+    class MonItemCustomMoves(utils.RawStruct):
+        fmt = mem.Unpacker("HBxHH[4H]")
+        def __init__(self, addr):
+            (self.iv,
+             self.lvl,
+             species_idx,
+             self.item_idx,
+             self.moves_idx) = super().__init__(addr)
+            self.species = Database.species[species_idx]
+
+    fmt = mem.Unpacker("4B12S[4H]B3xIB3xI")
+    def __init__(self, addr):
+        (self.party_flags,
+         self.trainer_class,
+         self.unknown,
+         self.pic,
+         self.name,
+         self.items,
+         self.double_battle,
+         self.ai_flags,
+         self.party_size,
+         self.party_ptr) = super().__init__(addr)
+        cls = [Trainer.MonNoItemDefaultMoves,
+               Trainer.MonNoItemCustomMoves,
+               Trainer.MonItemDefaultMoves,
+               Trainer.MonItemCustomMoves][self.party_flags]
+        self.party = utils.rawArray(cls, self.party_ptr, self.party_size)
