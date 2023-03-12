@@ -80,7 +80,7 @@ def runGame(bot=None):
         screen.blit(surface, (0, 0))
         pygame.display.flip()
 
-def mainAI():
+def mainAI(bot):
     io.releaseAll()
     io.turbo = True
     while core.frame_counter < 800:
@@ -95,7 +95,7 @@ def mainAI():
         yield from movement.turn(core.KEY_UP)
         yield from movement.turn(core.KEY_RIGHT)
 
-def battleAI():
+def battleAI(bot):
     enemy = db.eteam[0]
     print(db.pteam[0].species.name, "vs", enemy.species.name)
 

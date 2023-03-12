@@ -9,9 +9,9 @@ import numpy as np
 class Bot():
     def __init__(self, main_fun, battle_fun, interact_fun=None):
         self.main_fun = main_fun
-        self.script = main_fun()
+        self.script = main_fun(self)
         self.battle_fun = battle_fun
-        self.battle_script = battle_fun()
+        self.battle_script = battle_fun(self)
         self.interact_fun = interact_fun
         self.interact_script = None
         self.was_in_battle = False
@@ -20,6 +20,11 @@ class Bot():
         self.saved_keys = 0
         self.tgt_script = None # Next script manually handled by the user
         Bot.instance = self
+
+        # NPC interactions
+        self.npc_hooks = {}
+        self.npc_waitlist = set()
+        self.npc_visited = set()
 
     def getWeakenMove():
         """
@@ -79,6 +84,30 @@ class Bot():
                 best_id = i
         return best_id
 
+    def track(self, pscript):
+        if pscript is None or pscript.key in self.npc_visited:
+            return
+        self.npc_visited.add(pscript.key)
+        for ctx in pscript.ctxs:
+            for var in ctx.getFilteredInputs():
+                if var not in self.npc_hooks:
+                    self.npc_hooks[var] = []
+                self.npc_hooks[var].append(pscript.key)
+
+    def checkTracked(self, changed):
+        if len(changed):
+            print(", ".join([str(x) for x in changed]))
+        for var in changed:
+            if var in self.npc_hooks:
+                for key in self.npc_hooks[var]:
+                    pscript = Script.cache[key]
+                    if key in self.npc_waitlist:
+                        self.npc_waitlist.remove(key)
+                    for ctx in (ctxs := pscript.execute()):
+                        if len(ctx.getFilteredOutputs()):
+                            self.npc_waitlist.add(key)
+                            break
+
     def onPreFrame(self):
         flags_old = None
         vars_old = None
@@ -87,7 +116,7 @@ class Bot():
                 if not self.was_in_battle:
                     # When entering battle, reload the battle script and save pressed keys
                     self.saved_keys = io.getRaw()
-                    self.battle_script = self.battle_fun()
+                    self.battle_script = self.battle_fun(self)
                 else:
                     # After battle, wait for screen fade and restore keys
                     io.releaseAll()
@@ -118,6 +147,7 @@ class Bot():
                     vars_old = db.getScriptVars()
                     pscript, instr = Script.getFromNextAddr(db.global_context.pc,
                                                             db.global_context.stack)
+                    self.track(pscript)
                     # If the interaction was not manually triggered, auto handle
                     if (self.interact_fun and (not self.tgt_script or
                                                pscript != self.tgt_script)):
@@ -130,8 +160,9 @@ class Bot():
                     vars_changed = np.where(vars_new != vars_old)[0]
                     changed = [Script.Flag(x) for x in flags_changed]
                     changed += [Script.Var(0x4000+x) for x in vars_changed]
-                    if len(changed):
-                        print(", ".join([str(x) for x in changed]))
+                    if pscript.key in self.npc_waitlist:
+                        self.npc_waitlist.remove(pscript.key)
+                    self.checkTracked(changed)
                 self.was_interacting = not self.was_interacting
                 continue
 
