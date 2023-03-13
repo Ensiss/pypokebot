@@ -82,7 +82,8 @@ def talkTo(local_id, choices=[]):
     """
     Bot.instance.tgt_script = script.Script.getPerson(local_id-1)
     while db.global_context.pc == 0:
-        yield from movement.toPers(local_id)
+        if (yield from movement.toPers(local_id)) == -1:
+            return -1
         yield from misc.fullPress(io.Key.A)
     yield from doInteraction(choices)
     Bot.instance.tgt_script = None
