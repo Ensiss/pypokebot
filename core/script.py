@@ -983,7 +983,7 @@ class Script:
                 # Store destination of jumps and conditions
                 instr.cmd.inPrint(jumps, instr)
                 # Exit at function end
-                if instr.opcode in [0x02, 0x03]: # end/return
+                if instr.opcode in [0x02, 0x03, 0x05]: # end/return/goto
                     break
                 instr = Instruction(instr.next_addr)
             ranges.append((addr, instr.next_addr))
