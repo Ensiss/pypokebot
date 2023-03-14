@@ -85,6 +85,11 @@ class Bot():
         return best_id
 
     def track(self, pscript):
+        """
+        Track a script's variables to monitor new dialogue options
+        Add to the waitlist if necessary
+        WARNING: might race condition if a var/flag is set before script execution is detected.
+        """
         if pscript is None or pscript.key in self.npc_visited:
             return
         self.npc_visited.add(pscript.key)
@@ -93,24 +98,36 @@ class Bot():
                 if var not in self.npc_hooks:
                     self.npc_hooks[var] = []
                 self.npc_hooks[var].append(pscript.key)
+        self.checkTracked([pscript.key])
 
-    def checkTracked(self, changed):
+    def checkTracked(self, keys):
+        """
+        Check a list of script keys for possible flags/variables to set
+        """
+        for key in keys:
+            if not (pscript := Script.cache[key]):
+                continue
+            if key in self.npc_waitlist:
+                self.npc_waitlist.remove(key)
+            for ctx in (ctxs := pscript.execute()):
+                if len(ctx.getFilteredOutputs()):
+                    self.npc_waitlist.add(key)
+                    break
+    def checkHooks(self, changed):
+        """
+        Poll hooks for a list of changed flags/variables
+        """
         if len(changed):
             print(", ".join([str(x) for x in changed]))
         for var in changed:
             if var in self.npc_hooks:
-                for key in self.npc_hooks[var]:
-                    pscript = Script.cache[key]
-                    if key in self.npc_waitlist:
-                        self.npc_waitlist.remove(key)
-                    for ctx in (ctxs := pscript.execute()):
-                        if len(ctx.getFilteredOutputs()):
-                            self.npc_waitlist.add(key)
-                            break
+                self.checkTracked(self.npc_hooks[var])
 
     def onPreFrame(self):
         flags_old = None
         vars_old = None
+        pscript = None
+
         while True:
             if db.isInBattle() != self.was_in_battle:
                 if not self.was_in_battle:
@@ -149,9 +166,16 @@ class Bot():
                                                             db.global_context.stack)
                     self.track(pscript)
                     # If the interaction was not manually triggered, auto handle
-                    if (self.interact_fun and (not self.tgt_script or
-                                               pscript != self.tgt_script)):
-                        self.interact_script = self.interact_fun()
+                    if self.interact_fun:
+                        last_talked = db.getScriptVar(Script.LASTTALKED)
+                        # LASTTALKED is probably not robust
+                        eq_lasttalked = (self.tgt_script and
+                                         self.tgt_script.idx == last_talked-1 and
+                                         self.tgt_script.type == Script.Type.PERSON)
+                        eq_script = (self.tgt_script and
+                                     self.tgt_script == pscript)
+                        if not eq_script and not eq_lasttalked:
+                            self.interact_script = self.interact_fun()
                 # Finishing an interaction
                 else:
                     flags_new = db.getScriptFlags()
@@ -160,9 +184,9 @@ class Bot():
                     vars_changed = np.where(vars_new != vars_old)[0]
                     changed = [Script.Flag(x) for x in flags_changed]
                     changed += [Script.Var(0x4000+x) for x in vars_changed]
-                    if pscript.key in self.npc_waitlist:
+                    if pscript and pscript.key in self.npc_waitlist:
                         self.npc_waitlist.remove(pscript.key)
-                    self.checkTracked(changed)
+                    self.checkHooks(changed)
                 self.was_interacting = not self.was_interacting
                 continue
 
