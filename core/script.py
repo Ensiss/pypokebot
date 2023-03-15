@@ -681,7 +681,7 @@ class Script:
     def isFlag(x):
         return x < Script.FLAG_COUNT
     def isSpcFlag(x):
-        return Script.SPCFLAG_COUNT <= x < Script.SPCFLAG_OFFSET + Script.SPCFLAG_COUNT
+        return Script.SPCFLAG_OFFSET <= x < Script.SPCFLAG_OFFSET + Script.SPCFLAG_COUNT
     def isBank(x):
         return x < Script.BANK_COUNT
     def isVar(x):
@@ -692,10 +692,13 @@ class Script:
     class Context:
         def __init__(self, other=None):
             if other is None:
-                ptr = mem.readU32(0x03005008)
-                self.flags = np.frombuffer(mem.bufferFromAddr(ptr + 0xEE0)[:Script.FLAG_COUNT >> 3], dtype=np.uint8).copy()
+                if (ptr := mem.readU32(0x03005008)) == 0:
+                    self.flags = np.zeros(Script.FLAG_COUNT >> 3, dtype=np.uint8)
+                    self.variables = np.zeros(Script.VAR_COUNT * 2, dtype=np.uint16)
+                else:
+                    self.flags = np.frombuffer(mem.readBuffer(ptr + 0xEE0, Script.FLAG_COUNT >> 3), dtype=np.uint8).copy()
+                    self.variables = np.frombuffer(mem.readBuffer(ptr + 0x1000, Script.VAR_COUNT * 2), dtype=np.uint16).copy()
                 self.spcflags = np.zeros(Script.SPCFLAG_COUNT >> 3, dtype=np.uint8)
-                self.variables = np.frombuffer(mem.bufferFromAddr(ptr + 0x1000)[:Script.VAR_COUNT * 2], dtype=np.uint16).copy()
                 self.spcvars = np.zeros(Script.SPCVAR_COUNT, dtype=np.uint16)
                 self.banks = np.zeros(Script.BANK_COUNT, dtype=np.uint32)
                 self.cmp1 = self.cmp2 = 0
@@ -765,10 +768,10 @@ class Script:
             if track:
                 self.inputs.add(Script.Flag(idx))
             if Script.isFlag(idx):
-                return bool(self.flags[idx >> 3] & (1 << (idx % 8)))
+                return bool(self.flags[idx >> 3] & (1 << (idx & 7)))
             if Script.isSpcFlag(idx):
                 idx = idx - Script.SPCFLAG_OFFSET
-                return bool(self.spcflags[idx >> 3] & (1 << (idx % 8)))
+                return bool(self.spcflags[idx >> 3] & (1 << (idx & 7)))
             print("Context error: flag %d(raw=%d) does not exist" % (idx, raw))
             return 0
 
