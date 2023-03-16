@@ -81,6 +81,27 @@ def runGame(bot=None):
         pygame.display.flip()
 
 def mainAI(bot):
+    def exploreMap():
+        """ Track all NPCs in current map and interact with useful ones """
+        for i in range(len(db.getCurrentMap().persons)):
+            bot.track(Script.getPerson(i))
+        blacklist = [] # Contains unreachable obstacles
+        while True: # Double loop to handle new dialogue added during exploration
+            found = False
+            for key in list(bot.npc_waitlist):
+                bid, mid, idx, stype = key
+                if bid != db.player.bank_id or mid != db.player.map_id:
+                    continue
+                if key in blacklist:
+                    continue
+                found = True
+                if (yield from interact.talkTo(idx+1)) == -1:
+                    blacklist.append(key)
+                else:
+                    break
+            if not found:
+                break
+
     io.releaseAll()
     io.turbo = True
     while core.frame_counter < 800:
@@ -118,7 +139,6 @@ def battleAI(bot):
             yield from misc.fullPress(io.Key.B)
             yield from battle.waitMainScreen()
         elif db.battle_menu.is_open and db.battle_menu.menu == 0:
-            print("Catch rate:", enemy.catchRate(db.items.poke_ball))
             # If the pokemon has not been caught yet, try to catch it
             if (not db.pokedex.hasOwned(enemy.growth.species_idx) and
                 db.battle_context.isCatchable()):
@@ -131,7 +151,6 @@ def battleAI(bot):
                         yield from battle.attack(move)
                     continue
             move = Bot.getBestMove()
-            print("Best move: %s" % db.battlers[0].moves[move].name)
             yield from battle.attack(move)
         else:
             # If a pokemon was caught, skip nickname
