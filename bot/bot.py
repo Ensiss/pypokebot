@@ -19,6 +19,7 @@ class Bot():
         self.was_interacting = False
         self.saved_keys = 0
         self.tgt_script = None # Next script manually handled by the user
+        self.tgt_choices = []
         Bot.instance = self
 
         # NPC interactions
@@ -69,6 +70,13 @@ class Bot():
                 best = i
                 mindmg = dmg[0]
         return best
+
+    def watchInteraction(self, pscript, choices=[]):
+        self.tgt_script = pscript
+        self.tgt_choices = choices
+    def clearInteraction(self):
+        self.tgt_script = None
+        self.tgt_choices = []
 
     def getBestMon():
         """
@@ -174,8 +182,12 @@ class Bot():
                                          self.tgt_script.type == Script.Type.PERSON)
                         eq_script = (self.tgt_script and
                                      self.tgt_script == pscript)
-                        if not eq_script and not eq_lasttalked:
-                            self.interact_script = self.interact_fun()
+                        if eq_script or eq_lasttalked:
+                            choices = self.tgt_choices
+                            self.clearInteraction()
+                        else:
+                            choices = []
+                        self.interact_script = self.interact_fun(choices)
                 # Finishing an interaction
                 else:
                     flags_new = db.getScriptFlags()

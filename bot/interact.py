@@ -69,21 +69,18 @@ def readSign(sign_id, choices=[]):
     """
     Move to and interact with a sign event, optionally with predefined choices
     """
-    Bot.instance.tgt_script = script.Script.getSign(sign_id)
-    while db.global_context.pc == 0:
-        yield from movement.toSign(sign_id)
+    Bot.instance.watchInteraction(script.Script.getSign(sign_id), choices)
+    while Bot.instance.tgt_script:
+        if (yield from movement.toSign(sign_id)) == -1:
+            return -1
         yield from misc.fullPress(io.Key.A)
-    yield from doInteraction(choices)
-    Bot.instance.tgt_script = None
 
 def talkTo(local_id, choices=[]):
     """
     Move to and talk to an NPC, optionally with predefined choices
     """
-    Bot.instance.tgt_script = script.Script.getPerson(local_id-1)
-    while db.global_context.pc == 0:
+    Bot.instance.watchInteraction(script.Script.getPerson(local_id-1), choices)
+    while Bot.instance.tgt_script:
         if (yield from movement.toPers(local_id)) == -1:
             return -1
         yield from misc.fullPress(io.Key.A)
-    yield from doInteraction(choices)
-    Bot.instance.tgt_script = None
