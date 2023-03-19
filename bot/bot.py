@@ -2,17 +2,17 @@ import sys
 import memory; mem = memory.Memory
 import database; db = database.Database
 import core.io; io = core.io.IO
+import script
 from script import Script
 import misc
 import numpy as np
 
 class Bot():
-    def __init__(self, main_fun, battle_fun, interact_fun=None):
+    def __init__(self, main_fun, battle_fun):
         self.main_fun = main_fun
         self.script = main_fun(self)
         self.battle_fun = battle_fun
         self.battle_script = battle_fun(self)
-        self.interact_fun = interact_fun
         self.interact_script = None
         self.was_in_battle = False
         self.wait_after_battle = 30
@@ -70,6 +70,63 @@ class Bot():
                 best = i
                 mindmg = dmg[0]
         return best
+
+    def doInteraction(choices=[]):
+        """
+        Handle a currently running npc interaction/script
+        Optionally answers dialog boxes with a list of choices
+        """
+        if (pc := db.global_context.pc) == 0:
+            return -1
+        locked_counter = 0
+        pscript, instr = script.Script.getFromNextAddr(pc, db.global_context.stack)
+        while db.global_context.pc != 0:
+            if db.global_context.pc != pc:
+                pc = db.global_context.pc
+                if pscript is None:
+                    pscript, instr = script.Script.getFromNextAddr(pc, db.global_context.stack)
+                else:
+                    instr = pscript.searchPrevious(pc, db.global_context.stack)
+                locked_counter = 0
+                yield io.releaseAll()
+
+            if instr is None:
+                yield io.toggle(io.Key.A)
+                continue
+
+            if type(instr.cmd) is script.CommandYesNoBox:
+                choice = choices.pop(0) if len(choices) > 0 else 0
+                while db.global_context.pc == pc:
+                    yield from misc.fullPress(io.Key.A if choice else io.Key.B)
+                continue
+            elif type(instr.cmd) is script.CommandMultichoice:
+                choice = choices.pop(0) if len(choices) > 0 else 0x7f
+                mcm = db.multi_choice_menu
+                if choice != 0x7f:
+                    yield from misc.moveCursor(mcm.columns, choice, lambda: mcm.cursor)
+                while db.global_context.pc == pc:
+                    yield from misc.fullPress(io.Key.A if choice != 0x7f else io.Key.B)
+                continue
+
+            elif instr.opcode == 0x66: # waitmsg
+                # Spamming the A button bleeds inputs into yesnobox and multichoice
+                # so we need to only press A when needed
+                if db.getLastByte() in [0xFA, 0xFB]:
+                    yield from misc.fullPress(io.Key.A)
+                    continue
+            elif instr.opcode == 0x6D: # waitkeypress
+                yield from misc.fullPress(io.Key.A)
+                continue
+
+            locked_counter += 1
+            if locked_counter >= 1000:
+                print("doInteraction stuck in instruction, trying to continue...")
+                print("0x%08X: %s" % (instr.addr, str(instr)))
+                locked_counter = 0
+                yield from misc.fullPress(io.Key.A)
+                continue
+            yield
+        return 0
 
     def watchInteraction(self, pscript, choices=[]):
         self.tgt_script = pscript
@@ -173,21 +230,20 @@ class Bot():
                     pscript, instr = Script.getFromNextAddr(db.global_context.pc,
                                                             db.global_context.stack)
                     self.track(pscript)
-                    # If the interaction was not manually triggered, auto handle
-                    if self.interact_fun:
-                        last_talked = db.getScriptVar(Script.LASTTALKED)
-                        # LASTTALKED is probably not robust
-                        eq_lasttalked = (self.tgt_script and
-                                         self.tgt_script.idx == last_talked-1 and
-                                         self.tgt_script.type == Script.Type.PERSON)
-                        eq_script = (self.tgt_script and
-                                     self.tgt_script == pscript)
-                        if eq_script or eq_lasttalked:
-                            choices = self.tgt_choices
-                            self.clearInteraction()
-                        else:
-                            choices = []
-                        self.interact_script = self.interact_fun(choices)
+                    last_talked = db.getScriptVar(Script.LASTTALKED)
+                    # LASTTALKED is probably not robust
+                    eq_lasttalked = (self.tgt_script and
+                                        self.tgt_script.idx == last_talked-1 and
+                                        self.tgt_script.type == Script.Type.PERSON)
+                    eq_script = (self.tgt_script and
+                                    self.tgt_script == pscript)
+                    if eq_script or eq_lasttalked:
+                        choices = self.tgt_choices
+                        self.clearInteraction()
+                    else:
+                        choices = []
+                    # Auto-handle interactions
+                    self.interact_script = Bot.doInteraction(choices)
                 # Finishing an interaction
                 else:
                     flags_new = db.getScriptFlags()

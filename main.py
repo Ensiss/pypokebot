@@ -170,6 +170,6 @@ def battleAI(bot):
                 continue
             yield io.toggle(core.KEY_A)
 
-runGame(Bot(mainAI, battleAI, interact.doInteraction))
+runGame(Bot(mainAI, battleAI))
 pygame.display.quit()
 m = db.getCurrentMap()
