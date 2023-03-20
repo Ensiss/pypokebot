@@ -283,6 +283,24 @@ class Connection(utils.RawStruct):
          self.bank_id,
          self.map_id) = super().__init__(addr)
 
+    def getMatchingEntry(self, x, y):
+        """
+        Given an exit's x/y coordinates,
+        return the matching entry point in the following map
+        """
+        dmap = db.banks[self.bank_id][self.map_id]
+        if self.type == ConnectType.NONE or self.type > ConnectType.RIGHT:
+            return x, y
+        if self.type == ConnectType.DOWN:
+            y = 0
+        elif self.type == ConnectType.UP:
+            y = dmap.height - 1
+        elif self.type == ConnectType.LEFT:
+            x = dmap.width - 1
+        elif self.type == ConnectType.RIGHT:
+            x = 0
+        return x, y
+
     def findExits(self, m):
         exits = []
         if self.type == ConnectType.NONE or self.type > ConnectType.RIGHT:
