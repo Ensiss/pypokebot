@@ -292,13 +292,17 @@ class Connection(utils.RawStruct):
         if self.type == ConnectType.NONE or self.type > ConnectType.RIGHT:
             return x, y
         if self.type == ConnectType.DOWN:
+            x -= self.offset
             y = 0
         elif self.type == ConnectType.UP:
+            x -= self.offset
             y = dmap.height - 1
         elif self.type == ConnectType.LEFT:
             x = dmap.width - 1
+            y -= self.offset
         elif self.type == ConnectType.RIGHT:
             x = 0
+            y -= self.offset
         return x, y
 
     def findExits(self, m):
