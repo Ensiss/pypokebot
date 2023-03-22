@@ -155,15 +155,27 @@ def toAny(locs, max_dist=0):
 def toPos(x, y, max_dist=0):
     return (yield from toAny(np.array([[x, y]]), max_dist))
 
-def toSign(idx, max_dist=1):
-    sign = db.getCurrentMap().signs[idx]
+def toSign(info, max_dist=1):
+    """
+    toSign(info)    Move to a sign
+    info: either SignEvent or sign index
+    """
+    if type(info) is world.SignEvent:
+        sign = info
+    elif type(info) is int:
+        sign = db.getCurrentMap().signs[info]
+    else:
+        print("sign error: invalid argument:", info)
+        return -1
     yield from toPos(sign.x, sign.y, max_dist)
     return (yield from turnTowards(sign.x, sign.y))
 
-def toPers(local_id, max_dist=1):
-    def _getTargetPos(p_id):
-        m = db.getCurrentMap()
-        pers = m.persons[p_id-1]
+def toPers(info, max_dist=1):
+    """
+    toPers(info)    Move to a NPC
+    info: either PersonEvent or person local index
+    """
+    def _getTargetPos(pers):
         for i in range(1, len(db.ows)):
             ow = db.ows[i]
             if ow.map_id == 0 and ow.bank_id == 0:
@@ -173,16 +185,24 @@ def toPers(local_id, max_dist=1):
                 return np.array([ow.dest_x, ow.dest_y])
         return np.array([pers.x, pers.y])
 
-    tgt_func = lambda: _getTargetPos(local_id)
+    if type(info) is world.PersonEvent:
+        pers = info
+    elif type(info) is int:
+        pers = db.getCurrentMap().persons[info-1]
+    else:
+        print("person error: invalid argument:", info)
+        return -1
+    tgt_func = lambda: _getTargetPos(pers)
     dist_func = lambda n, tgt: np.linalg.norm(tgt - [n.x, n.y], ord=1)
     if (yield from to(tgt_func, dist_func, max_dist)) == -1:
         return -1
-    tx, ty = _getTargetPos(local_id)
+    tx, ty = _getTargetPos(pers)
     return (yield from turnTowards(tx, ty))
 
-def toConnection(ctype):
+def toConnection(info):
     """
-    connection(connect_type)    Leave the current map in the specified direction
+    toConnection(info)    Leave the current map in the specified direction
+    info: either Connection, connection index, or ConnectionType
     """
     def _findConnection(m, ctype):
         for connection in m.connects:
@@ -190,14 +210,22 @@ def toConnection(ctype):
                 return connection
         return None
 
-    if ctype == world.ConnectType.NONE or ctype > world.ConnectType.RIGHT:
-        print("connection error: only directions up, down, left, right are currently supported")
-        return -1
-
     p = db.player
     m = db.getCurrentMap()
-    connection = _findConnection(m, ctype)
+    if type(info) is world.ConnectType:
+        connection = _findConnection(m, info)
+    elif type(info) is world.Connection:
+        connection = info
+    elif type(info) is int:
+        connection = m.connects[info]
+    else:
+        print("connection error: invalid argument:", info)
+        return -1
+    ctype = connection.type
 
+    if ctype == world.ConnectType.NONE or ctype > world.ConnectType.RIGHT:
+        print("connection error: only directions up, down, left, right are supported")
+        return -1
     if connection is None or len(connection.exits) == 0:
         print("connection error: no connection of type %d in map (%d,%d)" %
               (ctype, p.bank_id, p.map_id))
@@ -221,10 +249,20 @@ _warp_behaviors = {
     0x6E: io.Key.LEFT,  # Stairs up left
     0x6F: io.Key.LEFT   # Stairs down left
 }
-def toWarp(warp_id):
+def toWarp(info):
+    """
+    toWarp(info)    Leave the map by using the specified warp
+    info: either WarpEvent, or phys_warp index
+    """
     p = db.player
     m = db.getCurrentMap()
-    warp = m.phys_warps[warp_id]
+    if type(info) is world.WarpEvent:
+        warp = info
+    elif type(info) is int:
+        warp = m.phys_warps[info]
+    else:
+        print("warp error: invalid argument:", info)
+        return -1
     max_dist = (m.map_status[warp.y, warp.x] == world.Status.OBSTACLE)
     if (yield from toPos(warp.x, warp.y, max_dist)) == -1:
         return -1
