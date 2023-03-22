@@ -161,6 +161,18 @@ class Pathfinder:
         unlock()
         return None
 
+    def searchAny(self, xs, ys, locs, dist=0):
+        dist_func = lambda n: np.linalg.norm(locs - [n.x, n.y], ord=1, axis=1).min()
+        return self.search(xs, ys, dist_func, dist)
+    def searchPos(self, xs, ys, xe, ye, dist=0):
+        return self.searchAny(xs, ys, np.array([[xe, ye]]), dist)
+    def searchWarp(self, xs, ys, warp, dist=0):
+        return self.searchPos(xs, ys, warp.x, warp.y, dist)
+    def searchConnection(self, xs, ys, conn, dist=0):
+        if conn is None or len(conn.exits) == 0:
+            return None
+        return self.searchAny(xs, ys, conn.exits, dist)
+
     def _getNextIndex(self, l):
         minh = np.inf
         mini = 0
