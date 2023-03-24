@@ -337,6 +337,13 @@ class CommandCompareVars(Command):
         ctx.compare(ctx.getVar(instr.args[0]), ctx.getVar(instr.args[1]))
         Command.execute(self, open_ctxs, conditionals, ctx, instr)
 
+class CommandSpecial(Command):
+    def execute(self, open_ctxs, conditionals, ctx, instr):
+        # Restrict special tracking to useful special functions
+        if instr.args[0] == 0x0: # Heal party
+            ctx.callSpecial(instr.args[0])
+        Command.execute(self, open_ctxs, conditionals, ctx, instr)
+
 class CommandBufferString(Command):
     def format(self, instr):
         return "bufferstring %d \"%s\"" % (instr.args[0], self.unrolledString(instr.args[1]))
@@ -677,6 +684,9 @@ class Script:
     class Buffer(Storage):
         def __init__(self, val):
             super().__init__("buffer(%d)", val)
+    class CallSpecial(Storage):
+        def __init__(self, val):
+            super().__init__("call_special(0x%x)", val)
 
     def isFlag(x):
         return x < Script.FLAG_COUNT
@@ -831,6 +841,10 @@ class Script:
                 self.banks[idx] = val
             else:
                 print("Context error: bank %d does not exist" % idx)
+
+        def callSpecial(self, idx, track=True):
+            if track:
+                self.outputs.add(Script.CallSpecial(idx))
 
         def compare(self, a, b):
             self.cmp1 = a
@@ -1092,7 +1106,7 @@ cmds = [
     CommandCompareVars(0x22, "comparevars %#x %#x", "var var"),
     Command(0x23, "callasm 0x%08x", "ptr"),
     Command(0x24, "gotoasm 0x%08x", "ptr"),
-    Command(0x25, "special %#x", "word"),
+    CommandSpecial(0x25, "special %#x", "word"),
     Command(0x26, "specialvar %#x %#x", "var word"),
     Command(0x27, "waitstate", ""),
     Command(0x28, "pause %#x", "word"),
