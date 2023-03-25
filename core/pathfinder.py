@@ -12,7 +12,6 @@ class Pathfinder:
             self.status = m.map_status[self.y, self.x]
             self.tile = m.map_tile[self.y, self.x]
             self.behavior = m.map_behavior[self.y, self.x]
-            self.bg = m.map_bg[self.y, self.x]
             self.left = self.right = None
             self.up = self.down = None
             self.setMovementCost()

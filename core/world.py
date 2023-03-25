@@ -74,8 +74,7 @@ class Map():
         data = data.reshape(self.height, self.width)
         self.map_status = (data >> 10).astype(np.uint8)
         self.map_tile = (data & 1023)
-        self.map_bg = np.zeros(data.shape, dtype=np.uint16)
-        self.map_behavior = np.zeros(data.shape, dtype=np.uint16)
+        self.map_attrs = np.zeros(data.shape, dtype=np.uint32)
         self.map_blocks = np.zeros(data.shape, dtype=np.uint16)
         tile_dict = {} # Cache tile attribute when possible
         # Fill background and behavior from tilesets
@@ -90,12 +89,19 @@ class Map():
                         tileset_idx = t - 640
 
                     block = mem.readU16(tileset.blocks_ptr + tileset_idx * 2)
-                    attr = TileAttr(tileset.behavior_ptr + tileset_idx * 4)
+                    attr = mem.readU32(tileset.behavior_ptr + tileset_idx * 4)
                     tile_dict[t] = (block, attr)
                 block, attr = tile_dict[t]
-                self.map_bg[y, x] = attr.bg
-                self.map_behavior[y, x] = attr.behavior
+                self.map_attrs[y, x] = attr
                 self.map_blocks[y, x] = block
+        self.map_behavior  = (self.map_attrs & 0x000001ff) >> 0
+        self.map_terrain   = (self.map_attrs & 0x00003e00) >> 9
+        self.map_attr2     = (self.map_attrs & 0x0003c000) >> 14
+        self.map_attr3     = (self.map_attrs & 0x00fc0000) >> 18
+        self.map_encounter = (self.map_attrs & 0x07000000) >> 24
+        self.map_attr5     = (self.map_attrs & 0x18000000) >> 27
+        self.map_layer     = (self.map_attrs & 0x60000000) >> 29
+        self.map_attr7     = (self.map_attrs & 0x80000000) >> 31
         self.pathfinder = None
 
         # Physically reachable warps
@@ -114,17 +120,27 @@ class Map():
             self.pathfinder = Pathfinder(self)
         return self.pathfinder
 
+    def plotAttributes(self):
+        import matplotlib.pyplot as plt
+        names = ["behavior", "terrain", "attr2", "attr3",
+                 "encounter", "attr5", "layer", "attr7"]
+        for i, name in enumerate(names):
+            plt.subplot(2, 4, i+1)
+            plt.imshow(self.__getattribute__("map_"+name))
+            plt.title(name.capitalize())
+        plt.show()
+
     def plot(self):
         import matplotlib.pyplot as plt
         plt.subplot(2, 2, 1)
-        plt.imshow(self.map_behavior)
-        plt.title("Behavior")
+        plt.imshow(self.map_attrs)
+        plt.title("Attributes")
         plt.subplot(2, 2, 2)
-        plt.imshow(self.map_bg)
-        plt.title("Background")
-        plt.subplot(2, 2, 3)
         plt.imshow(self.map_status)
         plt.title("Status")
+        plt.subplot(2, 2, 3)
+        plt.imshow(self.map_blocks)
+        plt.title("Block")
         plt.subplot(2, 2, 4)
         plt.imshow(self.map_tile)
         plt.title("Tile")
@@ -173,12 +189,6 @@ class TilesetHeader(utils.RawStruct):
          self.blocks_ptr,
          self.anim_ptr,
          self.behavior_ptr) = super().__init__(addr)
-
-class TileAttr(utils.RawStruct):
-    fmt = "2H"
-    def __init__(self, addr):
-        (self.behavior,
-         self.bg) = super().__init__(addr)
 
 class Event(utils.RawStruct):
     fmt = "4B4I"
