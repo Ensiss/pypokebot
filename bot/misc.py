@@ -37,6 +37,8 @@ def moveCursor(w, dest, func):
     dest  Index of destination position
     func  Function returning the current cursor position
     """
+    if w == 0:
+        w = 1
     dx = dest % w
     dy = dest // w
 
