@@ -140,9 +140,21 @@ class Pathfinder:
 
         while len(openset) > 0:
             curr = openset.pop(self._getNextIndex(openset))
+            # If the target is reached
             if curr.dist == dist:
                 unlock()
                 return self._rebuildPath(curr)
+            # If the target is an NPC directly behind a counter
+            elif dist == 1 and curr.dist == 2:
+                for dir_i in range(4):
+                    dx = curr.x + np.sign(dir_i - 1) * (1 - dir_i % 2)
+                    dy = curr.y + np.sign(dir_i - 2) * (dir_i % 2)
+                    if (dx < 0 or dx >= self.map.width or
+                        dy < 0 or dy >= self.map.height):
+                        continue
+                    if self.map.map_behavior[dy,dx] == 0x80:
+                        unlock()
+                        return self._rebuildPath(curr)
             closedset.append(curr)
             for next_node in curr.getNeighbors():
                 if next_node.hasOverWorld():
