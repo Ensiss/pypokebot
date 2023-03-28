@@ -37,8 +37,10 @@ class Pathfinder:
 
         def setMovementCost(self):
             """ Sets movement cost """
+            terrain = self.map.map_terrain[self.y, self.x]
+            encounter = self.map.map_encounter[self.y, self.x]
             self.movement_cost = 1.0
-            if self.behavior in [0x0202]: # Grass
+            if terrain == 1 and encounter == 1: # Grass
                 self.movement_cost = 10.0
 
         def connect(self, pth):
