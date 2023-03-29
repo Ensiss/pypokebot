@@ -1,12 +1,22 @@
 import numpy as np
 import database; db = database.Database
 import core.io; io = core.io.IO
+from script import Script
 import world
 
 class Metafinder:
     subpaths = {} # Dict of pair accessibility within a map
 
-    def _subSearch(start_key, tgt_key):
+    def _subSearch(start_key, checker):
+        """
+        Returns a valid path from start_key, validated by the function 'checker'
+        start_key: (x, y, bank_id, map_id)
+        checker:
+        - called for each new visited node
+        - args: list of nodes to visit, current node
+        - returns: True if the current path has reached the target, False otherwise
+        - notes: the checker should add a path to a precise location to 'to_visit' once the right map has been found
+        """
         def checkPath(path):
             for node in path:
                 if node in Metafinder.subpaths:
@@ -23,6 +33,8 @@ class Metafinder:
                 elif type(args) is world.WarpEvent:
                     max_dist = (m.map_status[args.y, args.x] == world.Status.OBSTACLE)
                     ret = finder.searchWarp(xp, yp, args, max_dist)
+                elif type(args) is world.PersonEvent:
+                    ret = finder.searchPers(xp, yp, args)
                 else:
                     xe, ye = args
                     ret = finder.searchPos(xp, yp, xe, ye)
@@ -31,12 +43,12 @@ class Metafinder:
                     return False, node
             return True, None
 
-        (xe, ye, bide, mide) = tgt_key
         to_visit = [(start_key, [], [])]
         while len(to_visit):
-            curr_key, path, meta_mem = to_visit.pop(0)
+            curr_node = to_visit.pop(0)
+            curr_key, path, meta_mem = curr_node
             (xc, yc, bidc, midc) = curr_key
-            if curr_key == tgt_key:
+            if checker(to_visit, curr_node):
                 is_valid, failure_node = checkPath(path)
                 if is_valid:
                     return path
@@ -44,12 +56,8 @@ class Metafinder:
                 # Prune candidates containing the unreachable node
                 to_visit = [cand for cand in to_visit if failure_node not in cand[1]]
                 continue
+
             m = db.banks[bidc][midc]
-            # Target map exploration
-            if bidc == bide and midc == mide:
-                to_visit.insert(0, (tgt_key,
-                                    path + [(curr_key, (xe, ye))],
-                                    meta_mem))
             # Explore map connections
             for conn in m.connects:
                 # TODO: conn.exits should not have 0 length
@@ -84,9 +92,23 @@ class Metafinder:
         return None
 
     def search(xs, ys, bids, mids, xe, ye, bide, mide):
+        def checker(to_visit, node, tgt_key):
+            curr_key, path, meta_mem = node
+            # Exact target has been reached
+            if curr_key == tgt_key:
+                return True
+            (xc, yc, bidc, midc) = curr_key
+            (xe, ye, bide, mide) = tgt_key
+            # Destination map reached, add final path to the list
+            if bidc == bide and midc == mide:
+                to_visit.insert(0, (tgt_key,
+                                    path + [(curr_key, (xe, ye))],
+                                    meta_mem))
+            return False
+
         curr_key = (xs, ys, bids, mids)
         tgt_key = (xe, ye, bide, mide)
-        return Metafinder._subSearch(curr_key, tgt_key)
+        return Metafinder._subSearch(curr_key, lambda *args: checker(*args, tgt_key))
 
     def searchFromPlayer(xe, ye, bide, mide):
         p = db.player

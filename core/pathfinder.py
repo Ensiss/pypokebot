@@ -179,6 +179,8 @@ class Pathfinder:
         return self.search(xs, ys, dist_func, dist)
     def searchPos(self, xs, ys, xe, ye, dist=0):
         return self.searchAny(xs, ys, np.array([[xe, ye]]), dist)
+    def searchPers(self, xs, ys, pers, dist=1):
+        return self.searchPos(xs, ys, pers.x, pers.y, dist)
     def searchWarp(self, xs, ys, warp, dist=0):
         return self.searchPos(xs, ys, warp.x, warp.y, dist)
     def searchConnection(self, xs, ys, conn, dist=0):
