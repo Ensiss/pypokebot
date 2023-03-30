@@ -113,3 +113,30 @@ class Metafinder:
     def searchFromPlayer(xe, ye, bide, mide):
         p = db.player
         return Metafinder.search(p.x, p.y, p.bank_id, p.map_id, xe, ye, bide, mide)
+
+    def searchHealer():
+        def checker(to_visit, node):
+            curr_key, path, meta_mem = node
+            (xc, yc, bidc, midc) = curr_key
+            m = db.banks[bidc][midc]
+            heal_instr = Script.CallSpecial(0x0)
+            # Exact target has been reached
+            if len(path):
+                key, args = path[-1]
+                # TODO: execute script and check that the heal is reachable
+                if type(args) is world.PersonEvent:
+                    return True
+            # Add final path to person if they can heal the party
+            for pers in m.persons:
+                if (pscript := Script.getPerson(pers.evt_nb-1, bidc, midc)) is None:
+                    continue
+                for ctx in pscript.ctxs:
+                    if heal_instr in ctx.outputs:
+                        to_visit.insert(0, ((pers.x, pers.y, bidc, midc),
+                                            path + [(curr_key, pers)],
+                                            meta_mem))
+            return False
+
+        p = db.player
+        start_key = p.x, p.y, p.bank_id, p.map_id
+        return Metafinder._subSearch(start_key, checker)
