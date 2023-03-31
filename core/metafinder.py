@@ -130,11 +130,10 @@ class Metafinder:
             for pers in m.persons:
                 if (pscript := Script.getPerson(pers.evt_nb-1, bidc, midc)) is None:
                     continue
-                for ctx in pscript.ctxs:
-                    if heal_instr in ctx.outputs:
-                        to_visit.insert(0, ((pers.x, pers.y, bidc, midc),
-                                            path + [(curr_key, pers)],
-                                            meta_mem))
+                if heal_instr in pscript.outputs:
+                    to_visit.insert(0, ((pers.x, pers.y, bidc, midc),
+                                        path + [(curr_key, pers)],
+                                        meta_mem))
             return False
 
         p = db.player

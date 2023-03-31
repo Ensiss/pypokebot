@@ -158,11 +158,10 @@ class Bot():
         if pscript is None or pscript.key in self.npc_visited:
             return
         self.npc_visited.add(pscript.key)
-        for ctx in pscript.ctxs:
-            for var in ctx.getFilteredInputs():
-                if var not in self.npc_hooks:
-                    self.npc_hooks[var] = []
-                self.npc_hooks[var].append(pscript.key)
+        for var in pscript.inputs.getTrackable():
+            if var not in self.npc_hooks:
+                self.npc_hooks[var] = []
+            self.npc_hooks[var].append(pscript.key)
         self.checkTracked([pscript.key])
 
     def checkTracked(self, keys):
@@ -174,8 +173,8 @@ class Bot():
                 continue
             if key in self.npc_waitlist:
                 self.npc_waitlist.remove(key)
-            for ctx in (ctxs := pscript.execute()):
-                if len(ctx.getFilteredOutputs()):
+            for ctx in pscript.execute():
+                if len(ctx.outputs.getTrackable()):
                     self.npc_waitlist.add(key)
                     break
     def checkHooks(self, changed):

@@ -688,6 +688,30 @@ class Script:
         def __init__(self, val):
             super().__init__("call_special(0x%x)", val)
 
+    class StorageSet(set):
+        def getTrackable(self):
+            out = Script.StorageSet()
+            for var in self:
+                if type(var) in [Script.Bank, Script.Buffer]:
+                    continue
+                elif type(var) is Script.Var:
+                    if (Script.isSpcVar(int(var)) or # Special vars
+                        int(var) < 0x4010): # Temp vars
+                        continue
+                elif type(var) is Script.Var:
+                    if (Script.isSpcFlag(int(var)) or # Special flags
+                        int(var) < 0x20): # Temp flags
+                        continue
+                out.add(var)
+            return out
+        def filter(self, cls):
+            sub = {x for x in self if type(x) is cls}
+            return Script.StorageSet(sub)
+        def copy(self):
+            return Script.StorageSet(super().copy())
+        def __str__(self):
+            return ",".join([str(x) for x in self])
+
     def isFlag(x):
         return x < Script.FLAG_COUNT
     def isSpcFlag(x):
@@ -714,8 +738,8 @@ class Script:
                 self.cmp1 = self.cmp2 = 0
                 self.pc = 0
                 self.stack = []
-                self.inputs = set()
-                self.outputs = set()
+                self.inputs = Script.StorageSet()
+                self.outputs = Script.StorageSet()
                 self.do_exit = False
                 self.choices = []
                 self.parent = None
@@ -734,26 +758,6 @@ class Script:
                 self.do_exit = other.do_exit
                 self.choices = other.choices.copy()
                 self.parent = other.parent
-
-        def getFiltered(self, varlist):
-            out = []
-            for var in varlist:
-                if type(var) in [Script.Bank, Script.Buffer]:
-                    continue
-                elif type(var) is Script.Var:
-                    if (Script.isSpcVar(int(var)) or # Special vars
-                        int(var) < 0x4010): # Temp vars
-                        continue
-                elif type(var) is Script.Var:
-                    if (Script.isSpcFlag(int(var)) or # Special flags
-                        int(var) < 0x20): # Temp flags
-                        continue
-                out.append(var)
-            return out
-        def getFilteredOutputs(self):
-            return self.getFiltered(self.outputs)
-        def getFilteredInputs(self):
-            return self.getFiltered(self.inputs)
 
         def initFor(self, parent):
             self.parent = parent
@@ -862,17 +866,11 @@ class Script:
             self.type = stype
         self.key = (bid, mid, idx, self.type)
         self.addr = addr
-        self.ctxs = self.explore()
-        self.outflags = set()
-        for ctx in self.ctxs:
-            for storage in ctx.outputs:
-                if type(storage) is Script.Flag:
-                    self.outflags.add(int(storage))
-        self.inflags = set()
-        for ctx in self.ctxs:
-            for storage in ctx.inputs:
-                if type(storage) is Script.Flag:
-                    self.inflags.add(int(storage))
+        self.inputs = Script.StorageSet()
+        self.outputs = Script.StorageSet()
+        for ctx in self.explore():
+            self.outputs |= ctx.outputs
+            self.inputs |= ctx.inputs
 
     def clearCache():
         Script.cache.clear()
