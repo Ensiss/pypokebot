@@ -5,6 +5,7 @@ import core.io; io = core.io.IO
 import script
 from script import Script
 import misc
+import world
 import numpy as np
 
 class Bot():
@@ -171,8 +172,10 @@ class Bot():
         for key in keys:
             if not (pscript := Script.cache[key]):
                 continue
-            if key in self.npc_waitlist:
-                self.npc_waitlist.remove(key)
+            self.npc_waitlist.discard(key)
+            # Hidden NPCs cannot be interacted with
+            if type(pscript.event) is world.PersonEvent and not pscript.event.isVisible():
+                continue
             for ctx in pscript.execute():
                 if len(ctx.outputs.getTrackable()):
                     self.npc_waitlist.add(key)
@@ -251,8 +254,8 @@ class Bot():
                     vars_changed = np.where(vars_new != vars_old)[0]
                     changed = [Script.Flag(x) for x in flags_changed]
                     changed += [Script.Var(0x4000+x) for x in vars_changed]
-                    if pscript and pscript.key in self.npc_waitlist:
-                        self.npc_waitlist.remove(pscript.key)
+                    if pscript:
+                        self.npc_waitlist.discard(pscript.key)
                     self.checkHooks(changed)
                 self.was_interacting = not self.was_interacting
                 continue

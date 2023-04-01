@@ -866,11 +866,22 @@ class Script:
             self.type = stype
         self.key = (bid, mid, idx, self.type)
         self.addr = addr
+        # Gather inputs and outputs from exploration
         self.inputs = Script.StorageSet()
         self.outputs = Script.StorageSet()
         for ctx in self.explore():
             self.outputs |= ctx.outputs
             self.inputs |= ctx.inputs
+        # Store actual event
+        self.event = None
+        if bid >= 0 and mid >= 0 and stype < Script.Type.STD:
+            m = db.banks[bid][mid]
+            evts = [m.persons, m.signs, m.scripts, m.map_scripts][stype]
+            if idx >= 0 and idx < len(evts):
+                self.event = evts[idx]
+        # NPC visibility flag is an input
+        if self.type == Script.Type.PERSON and self.event.idx != 0:
+            self.inputs.add(Script.Flag(self.event.idx))
 
     def clearCache():
         Script.cache.clear()

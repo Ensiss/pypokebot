@@ -192,6 +192,8 @@ def toPers(info, max_dist=1):
     else:
         print("person error: invalid argument:", info)
         return -1
+    if not pers.isVisible():
+        return -1
     tgt_func = lambda: _getTargetPos(pers)
     dist_func = lambda n, tgt: np.linalg.norm(tgt - [n.x, n.y], ord=1)
     if (yield from to(tgt_func, dist_func, max_dist)) == -1:
