@@ -2,6 +2,9 @@ import sys
 import memory; mem = memory.Memory
 import database; db = database.Database
 import core.io; io = core.io.IO
+import movement
+import interact
+import battle
 import script
 from script import Script
 import misc
@@ -189,6 +192,53 @@ class Bot():
         for var in changed:
             if var in self.npc_hooks:
                 self.checkTracked(self.npc_hooks[var])
+
+    def exploreMap(self):
+        """
+        Track all NPCs in current map and interact with useful ones
+        """
+        for i in range(len(db.getCurrentMap().persons)):
+            self.track(Script.getPerson(i))
+        blacklist = [] # Contains unreachable obstacles
+        m = db.getCurrentMap()
+        while True: # Double loop to handle new dialogue added during exploration
+            found = False
+            npcs = []
+            # Sort npcs by proximity
+            for key in self.npc_waitlist:
+                bid, mid, idx, stype = key
+                if bid != db.player.bank_id or mid != db.player.map_id:
+                    continue
+                person = m.persons[idx]
+                npcs.append(person)
+            px, py = db.player.x, db.player.y
+            npcs.sort(key=lambda p: (p.x - px)**2 + (p.y - py)**2)
+
+            # Try visiting npcs in order of proximity
+            for npc in npcs:
+                if npc in blacklist:
+                    continue
+                found = True
+                if (yield from interact.talkTo(npc.evt_nb)) == -1:
+                    blacklist.append(npc)
+                else:
+                    break
+            if not found:
+                break
+
+    def followPath(self, path, explore=False):
+        for (xp, yp, bidp, midp), args in path:
+            if type(args) is world.Connection:
+                func = movement.toConnection(args)
+            elif type(args) is world.WarpEvent:
+                func = movement.toWarp(args)
+            elif type(args) is world.PersonEvent:
+                func = movement.toPers(args)
+            else:
+                func = movement.toPos(*args)
+            if explore:
+                yield from self.exploreMap()
+            yield from func
 
     def onPreFrame(self):
         flags_old = None
