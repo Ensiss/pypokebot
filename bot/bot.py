@@ -226,20 +226,6 @@ class Bot():
             if not found:
                 break
 
-    def followPath(self, path, explore=False):
-        for (xp, yp, bidp, midp), args in path:
-            if type(args) is world.Connection:
-                func = movement.toConnection(args)
-            elif type(args) is world.WarpEvent:
-                func = movement.toWarp(args)
-            elif type(args) is world.PersonEvent:
-                func = movement.toPers(args)
-            else:
-                func = movement.toPos(*args)
-            if explore:
-                yield from self.exploreMap()
-            yield from func
-
     def onPreFrame(self):
         flags_old = None
         vars_old = None
