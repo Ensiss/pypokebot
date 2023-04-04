@@ -256,7 +256,8 @@ class Species(utils.RawStruct):
 
 class Item(utils.RawStruct):
     fmt = mem.Unpacker("14S2H2BIH2B4I")
-    def __init__(self, addr):
+    def __init__(self, addr, data_idx=0):
+        self.data_idx = data_idx
         (self.name,
          self.index,
          self.price,
@@ -298,7 +299,8 @@ class OWObject(utils.RawStruct, utils.AutoUpdater):
     Overworld Objects such as people, pickable objects, etc.
     """
     fmt = "2BH2BH4B8HI2H"
-    def __init__(self, addr):
+    def __init__(self, addr, data_idx=0):
+        self.data_idx = data_idx
         super().__init__(addr)
 
     def update(self):
@@ -385,14 +387,16 @@ class Trainer(utils.RawStruct):
         HELD_ITEM = 1 << 1
     class MonNoItemDefaultMoves(utils.RawStruct):
         fmt = mem.Unpacker("HBxH2x")
-        def __init__(self, addr):
+        def __init__(self, addr, data_idx=0):
+            self.data_idx = data_idx
             (self.iv,
              self.lvl,
              species_idx) = super().__init__(addr)
             self.species = Database.species[species_idx]
     class MonItemDefaultMoves(utils.RawStruct):
         fmt = mem.Unpacker("HBxHH")
-        def __init__(self, addr):
+        def __init__(self, addr, data_idx=0):
+            self.data_idx = data_idx
             (self.iv,
              self.lvl,
              species_idx,
@@ -400,7 +404,8 @@ class Trainer(utils.RawStruct):
             self.species = Database.species[species_idx]
     class MonNoItemCustomMoves(utils.RawStruct):
         fmt = mem.Unpacker("HBxH[4H]2x")
-        def __init__(self, addr):
+        def __init__(self, addr, data_idx=0):
+            self.data_idx = data_idx
             (self.iv,
              self.lvl,
              species_idx,
@@ -408,7 +413,8 @@ class Trainer(utils.RawStruct):
             self.species = Database.species[species_idx]
     class MonItemCustomMoves(utils.RawStruct):
         fmt = mem.Unpacker("HBxHH[4H]")
-        def __init__(self, addr):
+        def __init__(self, addr, data_idx=0):
+            self.data_idx = data_idx
             (self.iv,
              self.lvl,
              species_idx,
@@ -417,7 +423,8 @@ class Trainer(utils.RawStruct):
             self.species = Database.species[species_idx]
 
     fmt = mem.Unpacker("4B12S[4H]B3xIB3xI")
-    def __init__(self, addr):
+    def __init__(self, addr, data_idx=0):
+        self.data_idx = data_idx
         (self.party_flags,
          self.trainer_class,
          self.unknown,

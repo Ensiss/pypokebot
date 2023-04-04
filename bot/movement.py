@@ -160,12 +160,7 @@ def toSign(info, max_dist=1):
     toSign(info)    Move to a sign
     info: either SignEvent or sign index
     """
-    if type(info) is world.SignEvent:
-        sign = info
-    elif type(info) is int:
-        sign = db.getCurrentMap().signs[info]
-    else:
-        print("sign error: invalid argument:", info)
+    if (sign := world.SignEvent.get(info)) is None:
         return -1
     yield from toPos(sign.x, sign.y, max_dist)
     return (yield from turnTowards(sign.x, sign.y))
@@ -185,12 +180,7 @@ def toPers(info, max_dist=1):
                 return np.array([ow.dest_x, ow.dest_y])
         return np.array([pers.x, pers.y])
 
-    if type(info) is world.PersonEvent:
-        pers = info
-    elif type(info) is int:
-        pers = db.getCurrentMap().persons[info-1]
-    else:
-        print("person error: invalid argument:", info)
+    if (pers := world.PersonEvent.get(info)) is None:
         return -1
     if not pers.isVisible():
         return -1
@@ -206,33 +196,16 @@ def toConnection(info):
     toConnection(info)    Leave the current map in the specified direction
     info: either Connection, connection index, or ConnectionType
     """
-    def _findConnection(m, ctype):
-        for connection in m.connects:
-            if connection.type == ctype:
-                return connection
-        return None
-
-    p = db.player
-    m = db.getCurrentMap()
-    if type(info) is world.ConnectType:
-        connection = _findConnection(m, info)
-    elif type(info) is world.Connection:
-        connection = info
-    elif type(info) is int:
-        connection = m.connects[info]
-    else:
-        print("connection error: invalid argument:", info)
+    if (connection := world.Connection.get(info)) is None:
         return -1
     ctype = connection.type
-
     if ctype == world.ConnectType.NONE or ctype > world.ConnectType.RIGHT:
-        print("connection error: only directions up, down, left, right are supported")
+        print("connection error: only up, down, left, right are supported")
         return -1
     if connection is None or len(connection.exits) == 0:
         print("connection error: no connection of type %d in map (%d,%d)" %
-              (ctype, p.bank_id, p.map_id))
+              (ctype, db.player.bank_id, db.player.map_id))
         return -1
-
     yield from toAny(connection.exits)
     yield from step(io.directions[ctype - 1])
     return 0
@@ -258,12 +231,7 @@ def toWarp(info):
     """
     p = db.player
     m = db.getCurrentMap()
-    if type(info) is world.WarpEvent:
-        warp = info
-    elif type(info) is int:
-        warp = m.phys_warps[info]
-    else:
-        print("warp error: invalid argument:", info)
+    if (warp := world.WarpEvent.get(info)) is None:
         return -1
     max_dist = (m.map_status[warp.y, warp.x] == world.Status.OBSTACLE)
     if (yield from toPos(warp.x, warp.y, max_dist)) == -1:

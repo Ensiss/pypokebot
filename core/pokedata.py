@@ -15,7 +15,8 @@ class Status(enum.IntEnum):
 
 class IPokeData(utils.RawStruct, utils.AutoUpdater):
     fmt = ""
-    def __init__(self, addr):
+    def __init__(self, addr, data_idx=0):
+        self.data_idx = data_idx
         super().__init__(addr)
 
     def _getMultiplier(self, n, d):

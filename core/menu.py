@@ -107,7 +107,8 @@ class MultiChoiceMenu(utils.RawStruct, utils.AutoUpdater):
 class MultiChoice(utils.RawStruct):
     fmt = "IB3x"
 
-    def __init__(self, addr):
+    def __init__(self, addr, data_idx=0):
+        self.data_idx = data_idx
         (self.str_table,
          self.nb_choices) = super().__init__(addr)
         self.choices = []

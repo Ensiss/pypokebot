@@ -63,7 +63,7 @@ class Map():
         self.map_scripts = []
         i = 0
         while mem.readU8(self.map_hdr.script_ptr + 5 * i) > 0:
-            self.map_scripts.append(MapScript(self.map_hdr.script_ptr + 5 * i))
+            self.map_scripts.append(MapScript(self.map_hdr.script_ptr + 5 * i, i))
             i += 1
 
         # Map data handling
@@ -212,7 +212,8 @@ class WildHeader:
 
 class MapScript(utils.RawStruct):
     fmt = "BI"
-    def __init__(self, addr):
+    def __init__(self, addr, data_idx=0):
+        self.data_idx = data_idx
         (self.type,
          self.script_ptr) = super().__init__(addr)
         if (self.type == MapScriptType.VALIDATE_LOAD_1 or
@@ -226,7 +227,8 @@ class MapScript(utils.RawStruct):
 
 class SignEvent(utils.RawStruct):
     fmt = "2H2B2xI"
-    def __init__(self, addr):
+    def __init__(self, addr, data_idx=0):
+        self.data_idx = data_idx
         (self.x,
          self.y,
          self.level,
@@ -239,9 +241,18 @@ class SignEvent(utils.RawStruct):
          self.quantity,
          self.is_underfoot) = mem.unpackBitfield(addr+8, [16, 8, 7, 1])
 
+    def get(info):
+        if type(info) is SignEvent:
+            return info
+        elif type(info) is int:
+            return db.getCurrentMap().signs[info]
+        print("sign error: invalid argument:", info)
+        return None
+
 class WarpEvent(utils.RawStruct):
     fmt = "2H4B"
-    def __init__(self, addr):
+    def __init__(self, addr, data_idx=0):
+        self.data_idx = data_idx
         (self.x,
          self.y,
          self.level,
@@ -249,9 +260,18 @@ class WarpEvent(utils.RawStruct):
          self.dest_map,
          self.dest_bank) = super().__init__(addr)
 
+    def get(info):
+        if type(info) is WarpEvent:
+            return info
+        elif type(info) is int:
+            return db.getCurrentMap().phys_warps[info]
+        print("warp error: invalid argument:", info)
+        return None
+
 class PersonEvent(utils.RawStruct):
     fmt = "2B3H6BHI2H"
-    def __init__(self, addr):
+    def __init__(self, addr, data_idx=0):
+        self.data_idx = data_idx
         (self.evt_nb,
          self.picture_nb,
          self.unknown,
@@ -268,6 +288,14 @@ class PersonEvent(utils.RawStruct):
          self.idx,
          self.unknown4) = super().__init__(addr)
 
+    def get(info):
+        if type(info) is PersonEvent:
+            return info
+        elif type(info) is int:
+            return db.getCurrentMap().persons[info-1]
+        print("person error: invalid argument:", info)
+        return None
+
     def isVisible(self):
         if self.idx == 0:
             return True
@@ -275,7 +303,8 @@ class PersonEvent(utils.RawStruct):
 
 class ScriptEvent(utils.RawStruct):
     fmt = "2H2B3HI"
-    def __init__(self, addr):
+    def __init__(self, addr, data_idx=0):
+        self.data_idx = data_idx
         (self.x,
          self.y,
          self.level,
@@ -287,11 +316,27 @@ class ScriptEvent(utils.RawStruct):
 
 class Connection(utils.RawStruct):
     fmt = "Ii2B2x"
-    def __init__(self, addr):
+    def __init__(self, addr, data_idx=0):
+        self.data_idx = data_idx
         (self.type,
          self.offset,
          self.bank_id,
          self.map_id) = super().__init__(addr)
+
+    def get(info):
+        def _findConnection(m, ctype):
+            for connection in m.connects:
+                if connection.type == ctype:
+                    return connection
+            return None
+        if type(info) is ConnectType:
+            return _findConnection(db.getCurrentMap(), info)
+        elif type(info) is Connection:
+            return info
+        elif type(info) is int:
+            return db.getCurrentMap().connects[info]
+        print("connection error: invalid argument:", info)
+        return None
 
     def getMatchingEntry(self, x, y):
         """
@@ -351,7 +396,8 @@ class WildBattle():
 
 class WildEntry(utils.RawStruct):
     fmt = "2BH"
-    def __init__(self, addr):
+    def __init__(self, addr, data_idx=0):
+        self.data_idx = data_idx
         (self.min_lvl,
          self.max_lvl,
          self.species) = super().__init__(addr)

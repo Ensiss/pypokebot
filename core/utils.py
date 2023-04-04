@@ -70,7 +70,7 @@ def rawArray(struct_cls, addr, count, size=-1):
             size = struct.calcsize("<"+struct_cls.fmt.replace("S", "s"))
         else:
             size = struct_cls.calcSize()
-    return [struct_cls(addr+i*size) for i in range(count)]
+    return [struct_cls(addr+i*size, i) for i in range(count)]
 
 charset = np.zeros(256, dtype=str)
 charset[:] = "?"
