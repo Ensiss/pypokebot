@@ -3,6 +3,7 @@ import database; db = database.Database
 import core.io; io = core.io.IO
 from script import Script
 import world
+import player
 
 class Metafinder:
     subpaths = {} # Dict of pair accessibility within a map
@@ -91,7 +92,20 @@ class Metafinder:
                                  meta_mem + [warp_key, dest_key]))
         return None
 
-    def search(xs, ys, bids, mids, xe, ye, bide, mide):
+    def _getStart(info=None):
+        if info is None:
+            info = db.player
+        if type(info) is player.Player:
+            return info.x, info.y, info.bank_id, info.map_id
+        elif type(info) is tuple:
+            if len(info) != 4:
+                print("Metafinder.getStart error: wrong info length:", info)
+                return Metafinder._getStart()
+            return info
+        print("Metafinder.getStart error: invalid info:", info)
+        return Metafinder._getStart()
+
+    def search(xe, ye, bide, mide, start=None):
         def checker(to_visit, node, tgt_key):
             curr_key, path, meta_mem = node
             # Exact target has been reached
@@ -106,15 +120,11 @@ class Metafinder:
                                     meta_mem))
             return False
 
-        curr_key = (xs, ys, bids, mids)
+        start_key = Metafinder._getStart(start)
         tgt_key = (xe, ye, bide, mide)
-        return Metafinder._subSearch(curr_key, lambda *args: checker(*args, tgt_key))
+        return Metafinder._subSearch(start_key, lambda *args: checker(*args, tgt_key))
 
-    def searchFromPlayer(xe, ye, bide, mide):
-        p = db.player
-        return Metafinder.search(p.x, p.y, p.bank_id, p.map_id, xe, ye, bide, mide)
-
-    def searchHealer():
+    def searchHealer(start=None):
         def checker(to_visit, node):
             curr_key, path, meta_mem = node
             (xc, yc, bidc, midc) = curr_key
@@ -136,6 +146,5 @@ class Metafinder:
                                         meta_mem))
             return False
 
-        p = db.player
-        start_key = p.x, p.y, p.bank_id, p.map_id
+        start_key = Metafinder._getStart(start)
         return Metafinder._subSearch(start_key, checker)
