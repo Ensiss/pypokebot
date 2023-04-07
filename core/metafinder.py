@@ -124,6 +124,17 @@ class Metafinder:
         tgt_key = (xe, ye, bide, mide)
         return Metafinder._subSearch(start_key, lambda *args: checker(*args, tgt_key))
 
+    def searchMap(bank_id, map_id, start=None):
+        def checker(to_visit, node):
+            curr_key, path, meta_mem = node
+            (xc, yc, bidc, midc) = curr_key
+            # Destination map reached
+            if bidc == bank_id and midc == map_id:
+                return True
+            return False
+        start_key = Metafinder._getStart(start)
+        return Metafinder._subSearch(start_key, checker)
+
     def searchHealer(start=None):
         def checker(to_visit, node):
             curr_key, path, meta_mem = node
