@@ -320,8 +320,8 @@ class Connection(utils.RawStruct):
         self.data_idx = data_idx
         (self.type,
          self.offset,
-         self.bank_id,
-         self.map_id) = super().__init__(addr)
+         self.dest_bank,
+         self.dest_map) = super().__init__(addr)
 
     def get(info):
         def _findConnection(m, ctype):
@@ -343,7 +343,7 @@ class Connection(utils.RawStruct):
         Given an exit's x/y coordinates,
         return the matching entry point in the following map
         """
-        dmap = db.banks[self.bank_id][self.map_id]
+        dmap = db.banks[self.dest_bank][self.dest_map]
         if self.type == ConnectType.NONE or self.type > ConnectType.RIGHT:
             return x, y
         if self.type == ConnectType.DOWN:
@@ -364,7 +364,7 @@ class Connection(utils.RawStruct):
         exits = []
         if self.type == ConnectType.NONE or self.type > ConnectType.RIGHT:
             return
-        dmap = db.banks[self.bank_id][self.map_id]
+        dmap = db.banks[self.dest_bank][self.dest_map]
         x = (self.type == ConnectType.RIGHT) * (m.width - 1)
         y = (self.type == ConnectType.DOWN) * (m.height - 1)
         vtcl = (self.type in [ConnectType.UP, ConnectType.DOWN])

@@ -69,7 +69,7 @@ class Metafinder:
                 exit_x, exit_y = conn.exits[0]
                 entry_x, entry_y = conn.getMatchingEntry(exit_x, exit_y)
                 conn_key = (exit_x, exit_y, bidc, midc)
-                dest_key = (entry_x, entry_y, conn.bank_id, conn.map_id)
+                dest_key = (entry_x, entry_y, conn.dest_bank, conn.dest_map)
                 if dest_key in meta_mem:
                     continue
                 to_visit.append((dest_key,
