@@ -11,6 +11,18 @@ class WildType(enum.IntEnum):
     ROCK = enum.auto()
     FISHING = enum.auto()
 
+class MapType(enum.IntEnum):
+    NONE = 0
+    TOWN = enum.auto()
+    CITY = enum.auto()
+    ROUTE = enum.auto()
+    UNDERGROUND = enum.auto()
+    UNDERWATER = enum.auto()
+    OCEAN_ROUTE = enum.auto()
+    UNKNOWN = enum.auto()
+    INDOOR = enum.auto()
+    SECRET_BASE = enum.auto()
+
 class ConnectType(enum.IntEnum):
     NONE = 0
     DOWN = enum.auto()
@@ -114,6 +126,20 @@ class Map():
         self.wild_battles = []
         for i in range(4):
             self.wild_battles.append(WildBattle())
+
+    def isOutside(self):
+        return self.map_hdr.type in [MapType.TOWN, MapType.CITY, MapType.ROUTE,
+                                     MapType.UNDERWATER, MapType.OCEAN_ROUTE]
+    def isLink(self):
+        """
+        Does the map link to a different region (with a name change)?
+        """
+        for evt in self.connects + self.warps:
+            if evt.dest_bank >= len(db.banks) or evt.dest_map >= len(db.banks[evt.dest_bank]):
+                continue
+            if self.name != db.banks[evt.dest_bank][evt.dest_map].name:
+                return True
+        return False
 
     def getPathfinder(self):
         if self.pathfinder is None:
