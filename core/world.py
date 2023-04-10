@@ -48,8 +48,10 @@ class Status(enum.IntEnum):
     WALKABLE = 0x0C
 
 class Map():
-    def __init__(self, addr):
+    def __init__(self, addr, bank_id, map_id):
         self.map_hdr = MapHeader(addr)
+        self.bank_id = bank_id
+        self.map_id = map_id
         data_hdr = self.map_hdr.data_hdr
         evt = self.map_hdr.event
 
@@ -140,6 +142,16 @@ class Map():
             if self.name != db.banks[evt.dest_bank][evt.dest_map].name:
                 return True
         return False
+    def getRegionMaps(self, region=set()):
+        region.add(self)
+        for evt in self.connects + self.warps:
+            if evt.dest_bank >= len(db.banks) or evt.dest_map >= len(db.banks[evt.dest_bank]):
+                continue
+            dmap = db.banks[evt.dest_bank][evt.dest_map]
+            if dmap.name != self.name or dmap in region:
+                continue
+            dmap.getRegionMaps(region)
+        return region
 
     def getPathfinder(self):
         if self.pathfinder is None:

@@ -70,7 +70,7 @@ class Database():
         while nxt > 0x8000000:
             maps = []
             for addr in range(rel, nxt, 4):
-                maps.append(world.Map(mem.readU32(addr)))
+                maps.append(world.Map(mem.readU32(addr), len(Database.banks), len(maps)))
             Database.banks.append(maps)
             rel, nxt = mem.unpack(bankptr + len(Database.banks) * 4, "2I")
         # Load map exits in memory
