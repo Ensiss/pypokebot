@@ -21,7 +21,8 @@ def follow(bot, path, explore=False):
             func = movement.toPos(*args)
         if explore:
             yield from bot.exploreMap()
-        yield from func
+        if (yield from func) == -1:
+            return -1
 
 def heal(bot):
     if (path := Metafinder.searchHealer()) is None:

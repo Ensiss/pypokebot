@@ -4,6 +4,7 @@ import enum
 import utils
 import world
 import memory; mem = memory.Memory
+import core.io; io = core.io.IO
 import re
 
 class Database():
@@ -94,6 +95,21 @@ class Database():
                     nentries = (entry_ptrs[i] - mon_ptr) // 4
                     wb.entries = utils.rawArray(world.WildEntry, mon_ptr, nentries)
             wildptr += 20
+        # Warp behaviors and necessary key to enter warp
+        Database.warp_behaviors = {
+            0x60: io.Key.UP,    # Cave door
+            0x62: io.Key.RIGHT, # Warp to block right
+            0x63: io.Key.LEFT,  # Warp to block left
+            0x64: io.Key.UP,    # Warp to block up
+            0x65: io.Key.DOWN,  # Warp to block down
+            0x69: io.Key.UP,    # Door
+            0x6A: io.Key.LEFT,  # Pokecenter stairs up
+            0x6B: io.Key.RIGHT, # Pokecenter stairs down
+            0x6C: io.Key.RIGHT, # Stairs up right
+            0x6D: io.Key.RIGHT, # Stairs down right
+            0x6E: io.Key.LEFT,  # Stairs up left
+            0x6F: io.Key.LEFT   # Stairs down left
+        }
 
         import pokedata
         import player

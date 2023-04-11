@@ -14,6 +14,12 @@ class IO(object):
         R = enum.auto()
         L = enum.auto()
 
+        def invert(self):
+            if IO.Key.RIGHT <= self <= IO.Key.DOWN:
+                return [IO.Key.LEFT, IO.Key.RIGHT,
+                        IO.Key.DOWN, IO.Key.UP][self - IO.Key.RIGHT]
+            return self
+
     def init(core):
         IO.core = core
 

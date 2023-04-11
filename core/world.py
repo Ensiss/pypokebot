@@ -87,6 +87,8 @@ class Map():
         data = np.frombuffer(rom[data_ptr:data_ptr+(2 * sz)], dtype=np.uint16)
         data = data.reshape(self.height, self.width)
         self.map_status = (data >> 10).astype(np.uint8)
+        self.map_collision = self.map_status & 3
+        self.map_level = self.map_status >> 2
         self.map_tile = (data & 1023)
         self.map_attrs = np.zeros(data.shape, dtype=np.uint32)
         self.map_blocks = np.zeros(data.shape, dtype=np.uint16)

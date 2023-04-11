@@ -135,7 +135,18 @@ class Pathfinder:
         for ow in db.ows:
             ow._checkUpdate()
         self.dirty = True
+        # If start is inside a building, try to exit
+        if (self.map.map_collision[ys,xs] == 1 and
+            self.map.map_behavior[ys,xs] in db.warp_behaviors):
+            key = db.warp_behaviors[self.map.map_behavior[ys,xs]].invert()
+            dx, dy = [(1, 0), (-1, 0), (0, -1), (0, 1)][key - io.Key.RIGHT]
+            xs += dx
+            ys += dy
         start = self.getNode(xs, ys)
+        if start is None:
+            print("pathfinding error: invalid start (%d,%d)" % (xs, ys))
+            unlock()
+            return None
         start.setHeuristic(dist_func(start))
         openset = [start]
         closedset = []

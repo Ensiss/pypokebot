@@ -210,20 +210,6 @@ def toConnection(info):
     yield from step(io.directions[ctype - 1])
     return 0
 
-_warp_behaviors = {
-    0x60: io.Key.UP,    # Cave door
-    0x62: io.Key.RIGHT, # Warp to block right
-    0x63: io.Key.LEFT,  # Warp to block left
-    0x64: io.Key.UP,    # Warp to block up
-    0x65: io.Key.DOWN,  # Warp to block down
-    0x65: io.Key.UP,    # Door
-    0x6A: io.Key.LEFT,  # Pokecenter stairs up
-    0x6B: io.Key.RIGHT, # Pokecenter stairs down
-    0x6C: io.Key.RIGHT, # Stairs up right
-    0x6D: io.Key.RIGHT, # Stairs down right
-    0x6E: io.Key.LEFT,  # Stairs up left
-    0x6F: io.Key.LEFT   # Stairs down left
-}
 def toWarp(info):
     """
     toWarp(info)    Leave the map by using the specified warp
@@ -241,7 +227,7 @@ def toWarp(info):
         return 0
     key = None
     if p.x == warp.x and p.y == warp.y:
-        key = _warp_behaviors[m.map_behavior[warp.y, warp.x]]
+        key = db.warp_behaviors[m.map_behavior[warp.y, warp.x]]
     else:
         if p.y < warp.y:
             key = io.Key.DOWN
