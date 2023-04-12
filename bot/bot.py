@@ -2,9 +2,11 @@ import sys
 import memory; mem = memory.Memory
 import database; db = database.Database
 import core.io; io = core.io.IO
+from metafinder import Metafinder
 import movement
 import interact
 import battle
+import path
 import script
 from script import Script
 import misc
@@ -193,14 +195,15 @@ class Bot():
             if var in self.npc_hooks:
                 self.checkTracked(self.npc_hooks[var])
 
+
     def exploreMap(self):
         """
         Track all NPCs in current map and interact with useful ones
         """
-        for i in range(len(db.getCurrentMap().persons)):
+        m = db.getCurrentMap()
+        for i in range(len(m.persons)):
             self.track(Script.getPerson(i))
         blacklist = [] # Contains unreachable obstacles
-        m = db.getCurrentMap()
         while True: # Double loop to handle new dialogue added during exploration
             found = False
             npcs = []
@@ -222,6 +225,45 @@ class Bot():
                 if (yield from interact.talkTo(npc.evt_nb)) == -1:
                     blacklist.append(npc)
                 else:
+                    break
+            if not found:
+                break
+
+    def exploreRegion(self):
+        m = db.getCurrentMap()
+        if not (m.isOutside() or m.isLink()):
+            return
+        for reg_map in m.getRegionMaps():
+            for i in range(len(reg_map.persons)):
+                self.track(Script.getPerson(i, reg_map.bank_id, reg_map.map_id))
+        blacklist = [] # Contains unreachable obstacles
+        while True: # Double loop to handle new dialogue added during exploration
+            found = False
+            mpaths = []
+            registered_maps = []
+            # Sort npcs by proximity
+            for key in self.npc_waitlist:
+                bid, mid, idx, stype = key
+                dmap = db.banks[bid][mid]
+                if dmap.name != m.name or dmap in registered_maps or dmap in blacklist:
+                    continue
+                mpath = Metafinder.searchMap(bid, mid)
+                mpaths.append((key, mpath))
+                registered_maps.append(dmap)
+            mpaths.sort(key=lambda x: len(x[1]))
+
+            # Try visiting npcs in order of proximity
+            for key, mpath in mpaths:
+                bid, mid, idx, stype = key
+                dmap = db.banks[bid][mid]
+                if dmap in blacklist:
+                    continue
+                found = True
+                blacklist.append(dmap)
+                if (yield from path.follow(self, mpath)) == -1:
+                    continue
+                else:
+                    yield from self.exploreMap()
                     break
             if not found:
                 break
