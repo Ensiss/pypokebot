@@ -18,10 +18,12 @@ import utils
 import memory; mem = memory.Memory
 import database; db = database.Database
 import core.io; io = core.io.IO
+from metafinder import Metafinder
 import misc
 import movement
 import interact
 import battle
+import path
 import ui
 from script import Script
 from bot import Bot
@@ -42,7 +44,6 @@ mem.init(core)
 io.init(core)
 db.init()
 Script.loadCache()
-
 screen = pygame.display.set_mode(size)
 clock = pygame.time.Clock()
 
@@ -81,37 +82,6 @@ def runGame(bot=None):
         pygame.display.flip()
 
 def mainAI(bot):
-    def exploreMap():
-        """ Track all NPCs in current map and interact with useful ones """
-        for i in range(len(db.getCurrentMap().persons)):
-            bot.track(Script.getPerson(i))
-        blacklist = [] # Contains unreachable obstacles
-        m = db.getCurrentMap()
-        while True: # Double loop to handle new dialogue added during exploration
-            found = False
-            npcs = []
-            # Sort npcs by proximity
-            for key in Bot.instance.npc_waitlist:
-                bid, mid, idx, stype = key
-                if bid != db.player.bank_id or mid != db.player.map_id:
-                    continue
-                person = m.persons[idx]
-                npcs.append(person)
-            px, py = db.player.x, db.player.y
-            npcs.sort(key=lambda p: (p.x - px)**2 + (p.y - py)**2)
-
-            # Try visiting npcs in order of proximity
-            for npc in npcs:
-                if npc in blacklist:
-                    continue
-                found = True
-                if (yield from interact.talkTo(npc.evt_nb)) == -1:
-                    blacklist.append(npc)
-                else:
-                    break
-            if not found:
-                break
-
     io.releaseAll()
     io.turbo = True
     while core.frame_counter < 800:
