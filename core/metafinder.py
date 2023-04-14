@@ -53,7 +53,6 @@ class Metafinder:
                 is_valid, failure_node = checkPath(path)
                 if is_valid:
                     return path
-                before_count = len(to_visit)
                 # Prune candidates containing the unreachable node
                 to_visit = [cand for cand in to_visit if failure_node not in cand[1]]
                 continue

@@ -22,16 +22,22 @@ class Pathfinder:
                     self.behavior not in [0x61, 0x6B])      # Not escalator
 
         def hasOverWorld(self):
+            checked = [False] * len(self.map.persons)
+            bid = self.map.bank_id
+            mid = self.map.map_id
+            # If working on the active map, check dynamic overworlds
+            if bid == db.player.bank_id and mid == db.player.map_id:
+                for ow in db.ows[1:]: # Skip player overworld
+                    if ow.bank_id == 0 and ow.map_id == 0:
+                        break
+                    if ow.bank_id == bid and ow.map_id == mid:
+                        if ow.dest_x == self.x and ow.dest_y == self.y:
+                            return True
+                        checked[ow.evt_nb-1] = True
             for pers in self.map.persons:
-                if (pers.x == self.x and pers.y == self.y and pers.isVisible() and
-                    pers.mvt_type in Pathfinder.mvt_static):
-                    return True
-            for ow in db.ows[1:]: # Skip player overworld
-                if ow.map_id == 0 and ow.bank_id == 0:
-                    break
-                if (ow.bank_id == db.player.bank_id and
-                    ow.map_id == db.player.map_id and
-                    ow.dest_x == self.x and ow.dest_y == self.y):
+                if checked[pers.evt_nb-1]: # Already checked as overworld
+                    continue
+                if pers.x == self.x and pers.y == self.y and pers.isVisible():
                     return True
             return False
 

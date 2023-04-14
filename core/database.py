@@ -320,7 +320,7 @@ class OWObject(utils.RawStruct, utils.AutoUpdater):
         super().__init__(addr)
 
     def update(self):
-        (self.temp,    # Temporary variable ?
+        (self.temp,    # Temporary variable?
          self.flags,   # 0x01 = locked (in menu or talking)
                        # 0x10 = immovable (pokeball in Oak's lab, cuttable tree, etc.)
                        # 0x40 = off-screen
