@@ -237,10 +237,12 @@ class Memory(object):
             out.append(utils.pokeToAscii(buf[addr:addr+str_sz]))
             addr += str_sz
         return out
-    def readBuffer(addr, sz, buf=None):
+    def readBuffer(addr, sz=0, buf=None):
         buf = Memory.bufferFromAddr(addr, buf)
         addr = addr & 0xFFFFFF
-        return buf[addr:addr+sz]
+        if sz > 0:
+            return buf[addr:addr+sz]
+        return buf[addr:]
 
     def hexdump(addr, sz, buf=None):
         buf = Memory.bufferFromAddr(addr, buf)

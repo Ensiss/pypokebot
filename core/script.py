@@ -1087,6 +1087,35 @@ class Script:
                     break
         return closed_ctxs
 
+class MvtScript:
+    def __init__(self, addr):
+        buf = mem.readBuffer(addr)
+        self.dx = self.dy = 0
+        for i, opcode in enumerate(buf):
+            if opcode == 0xFE:
+                self.buf = buf[:i]
+                break
+            cmd = mvt_actions[opcode]
+            self.dx += cmd.dx
+            self.dy += cmd.dy
+
+    def print(self):
+        s = ""
+        ops = np.frombuffer(self.buf, dtype=np.uint8)
+        prev = None
+        repeat = 1
+        for opcode in self.buf:
+            cur = mvt_actions[opcode]
+            if cur != prev:
+                if prev is not None:
+                    print(s + (" x%d" % repeat if repeat > 1 else ""))
+                repeat = 1
+                s = str(cur)
+            else:
+                repeat += 1
+            prev = cur
+        print(s + (" x%d" % repeat if repeat > 1 else ""))
+
 cmds = [
     Command(0x00, "nop", ""),
     Command(0x01, "nop1", ""),
