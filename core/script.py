@@ -438,6 +438,12 @@ class CommandCheckItemType(Command):
     def explore(self, open_ctxs, conditionals, ctx, instr):
         Command.execute(self, open_ctxs, conditionals, ctx, instr)
 
+class CommandApplyMovement(Command):
+    def execute(self, open_ctxs, conditionals, ctx, instr):
+        if instr.args[0] == 0xFF: # Register movement applied to player
+            ctx.outputs.add(Script.Movement(instr.args[1]))
+        Command.execute(self, open_ctxs, conditionals, ctx, instr)
+
 class CommandHideSprite(Command):
     def execute(self, open_ctxs, conditionals, ctx, instr):
         local_id = ctx.getVar(instr.args[0]) # Local ids are 1-indexed
@@ -697,22 +703,24 @@ class Script:
     class CallSpecial(Storage):
         def __init__(self, val):
             super().__init__("call_special(0x%x)", val)
+    class Movement(Storage):
+        def __init__(self, val):
+            super().__init__("movement(0x%x)", val)
 
     class StorageSet(set):
         def getTrackable(self):
             out = Script.StorageSet()
             for var in self:
-                if type(var) in [Script.Bank, Script.Buffer]:
-                    continue
-                elif type(var) is Script.Var:
+                if type(var) is Script.Var:
                     if (Script.isSpcVar(int(var)) or # Special vars
                         int(var) < 0x4010): # Temp vars
                         continue
-                elif type(var) is Script.Var:
+                    out.add(var)
+                elif type(var) is Script.Flag:
                     if (Script.isSpcFlag(int(var)) or # Special flags
                         int(var) < 0x20): # Temp flags
                         continue
-                out.add(var)
+                    out.add(var)
             return out
         def filter(self, cls):
             sub = {x for x in self if type(x) is cls}
@@ -1196,7 +1204,7 @@ cmds = [
     Command(0x4C, "removedecoration %#x", "word/var"),
     Command(0x4D, "testdecoration %#x", "word/var"),
     Command(0x4E, "checkdecoration %#x", "word/var"),
-    Command(0x4F, "applymovement %#x 0x%08x", "byte/var ptr"),
+    CommandApplyMovement(0x4F, "applymovement %#x 0x%08x", "byte/var ptr"),
     Command(0x50, "applymovementat %#x 0x%08x", "word ptr"),
     Command(0x51, "waitmovement %#x", "byte/var"),
     Command(0x52, "waitmovementat %#x %#x %#x", "byte/var byte byte"),
