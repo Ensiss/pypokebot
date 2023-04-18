@@ -440,9 +440,13 @@ class CommandCheckItemType(Command):
 
 class CommandApplyMovement(Command):
     def execute(self, open_ctxs, conditionals, ctx, instr):
-        if instr.args[0] == 0xFF: # Register movement applied to player
+        local_id = ctx.getVar(instr.args[0])
+        if local_id == 0xFF: # Register movement applied to player
             ctx.outputs.add(Script.Movement(instr.args[1]))
         Command.execute(self, open_ctxs, conditionals, ctx, instr)
+    def format(self, instr):
+        mvt_s = MvtScript(instr.args[1])
+        return "applymovement %#x 0x%08x(dx=%d,dy=%d)" % (instr.args[0], instr.args[1], mvt_s.dx, mvt_s.dy)
 
 class CommandHideSprite(Command):
     def execute(self, open_ctxs, conditionals, ctx, instr):
