@@ -22,6 +22,8 @@ class Pathfinder:
                     self.behavior not in [0x61, 0x6B])      # Not escalator
 
         def hasOverWorld(self):
+            if self.ow is not None:
+                return self.ow
             checked = [False] * len(self.map.persons)
             bid = self.map.bank_id
             mid = self.map.map_id
@@ -32,14 +34,17 @@ class Pathfinder:
                         break
                     if ow.bank_id == bid and ow.map_id == mid:
                         if ow.dest_x == self.x and ow.dest_y == self.y:
-                            return True
+                            self.ow = True
+                            return self.ow
                         checked[ow.evt_nb-1] = True
             for pers in self.map.persons:
                 if checked[pers.evt_nb-1]: # Already checked as overworld
                     continue
                 if pers.x == self.x and pers.y == self.y and pers.isVisible():
-                    return True
-            return False
+                    self.ow = True
+                    return self.ow
+            self.ow = False
+            return self.ow
 
         def setMovementCost(self):
             """ Sets movement cost """
@@ -96,6 +101,7 @@ class Pathfinder:
             self.weight = self.heuristic = 0
             self.dist = 9999
             self.prev = None
+            self.ow = None
 
         def setHeuristic(self, dist):
             self.dist = dist
