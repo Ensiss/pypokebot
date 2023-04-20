@@ -1,6 +1,7 @@
 import numpy as np
 import database; db = database.Database
 import core.io; io = core.io.IO
+from script import Script, MvtScript
 
 class Pathfinder:
     mvt_static = [0, 1, 7, 8, 9, 10] + list(range(13, 25)) + list(range(64, 80))
@@ -14,6 +15,7 @@ class Pathfinder:
             self.behavior = m.map_behavior[self.y, self.x]
             self.left = self.right = None
             self.up = self.down = None
+            self.scripts = []
             self.setMovementCost()
             self.clear()
 
@@ -45,6 +47,24 @@ class Pathfinder:
                     return self.ow
             self.ow = False
             return self.ow
+
+        def hasScriptMovement(self, ctx):
+            if self.script_mvmt is not None:
+                return self.script_mvmt
+            for s in self.scripts:
+                if ctx.getVar(s.var_nb, False) != s.var_val:
+                    continue
+                sscript = Script.getScript(s.data_idx, self.map.bank_id, self.map.map_id)
+                # is duplicating the context necessary here?
+                out_ctxs = sscript.execute(Script.Context(ctx))
+                for out_ctx in out_ctxs:
+                    for mvt_addr in out_ctx.outputs.filter(Script.Movement):
+                        mvt_script = MvtScript(int(mvt_addr))
+                        if mvt_script.dx != 0 or mvt_script.dy != 0:
+                            self.script_mvmt = True
+                            return self.script_mvmt
+            self.script_mvmt = False
+            return self.script_mvmt
 
         def setMovementCost(self):
             """ Sets movement cost """
@@ -102,6 +122,7 @@ class Pathfinder:
             self.dist = 9999
             self.prev = None
             self.ow = None
+            self.script_mvmt = None
 
         def setHeuristic(self, dist):
             self.dist = dist
@@ -129,8 +150,13 @@ class Pathfinder:
             for x in range(self.map.width):
                 if not self.nodes[y][x].isWalkable():
                     self.nodes[y][x] = None
+        # Register scripts
+        for s in self.map.scripts:
+            if (node := self.getNode(s.x, s.y)) is None:
+                continue
+            node.scripts.append(s)
 
-    def search(self, xs, ys, dist_func, dist=0):
+    def search(self, xs, ys, dist_func, dist=0, ctx=None):
         """
         Returns the path from [xs,ys] to a given target
         dist_func returns the distance to the target from a node
@@ -139,6 +165,8 @@ class Pathfinder:
             db.player.unlock()
             database.OWObject.unlock()
 
+        if ctx is None:
+            ctx = Script.Context()
         if self.dirty:
             self.clear()
         # Lock dynamic objects from updates
@@ -182,7 +210,7 @@ class Pathfinder:
                         return self._rebuildPath(curr)
             closedset.append(curr)
             for next_node in curr.getNeighbors():
-                if next_node.hasOverWorld():
+                if next_node.hasOverWorld() or next_node.hasScriptMovement(ctx):
                     continue
                 cost = curr.weight + next_node.movement_cost
                 visited = (next_node in closedset)
