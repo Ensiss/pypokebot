@@ -58,6 +58,7 @@ class Metafinder:
                 continue
 
             m = db.banks[bidc][midc]
+            blacklist = set()
             # Explore map connections
             for conn in m.connects:
                 # TODO: conn.exits should not have 0 length
@@ -69,12 +70,14 @@ class Metafinder:
                 entry_x, entry_y = conn.getMatchingEntry(exit_x, exit_y)
                 conn_key = (exit_x, exit_y, bidc, midc)
                 dest_key = (entry_x, entry_y, conn.dest_bank, conn.dest_map)
-                if dest_key in meta_mem:
+                if dest_key in meta_mem or dest_key in blacklist:
                     continue
+                blacklist.add(dest_key)
                 to_visit.append((dest_key,
                                  path + [(curr_key, conn)],
                                  meta_mem + [conn_key, dest_key]))
             # Explore warps
+            blacklist = set()
             for warp in m.warps:
                 dest_warp = db.banks[warp.dest_bank][warp.dest_map].warps[warp.dest_warp]
                 # TODO: dest_warp.dest_warp should be valid
@@ -84,8 +87,9 @@ class Metafinder:
                 back_warp = m.warps[dest_warp.dest_warp]
                 warp_key = (back_warp.x, back_warp.y, bidc, midc)
                 dest_key = (dest_warp.x, dest_warp.y, warp.dest_bank, warp.dest_map)
-                if dest_key in meta_mem:
+                if dest_key in meta_mem or dest_key in blacklist:
                     continue
+                blacklist.add(dest_key)
                 to_visit.append((dest_key,
                                  path + [(curr_key, back_warp)],
                                  meta_mem + [warp_key, dest_key]))
