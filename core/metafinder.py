@@ -63,11 +63,12 @@ class Metafinder:
             for conn in m.connects:
                 # TODO: conn.exits should not have 0 length
                 # TODO: investigate for map [3,41]
-                if len(conn.exits) == 0:
+                dest_conn = conn.getMatchingConnection()
+                if len(conn.exits) == 0 or len(dest_conn.exits) == 0:
                     continue
                 # TODO: can a connection lead to different parts of a map?
                 exit_x, exit_y = conn.exits[0]
-                entry_x, entry_y = conn.getMatchingEntry(exit_x, exit_y)
+                entry_x, entry_y = dest_conn.exits[0]
                 conn_key = (exit_x, exit_y, bidc, midc)
                 dest_key = (entry_x, entry_y, conn.dest_bank, conn.dest_map)
                 if dest_key in meta_mem or dest_key in blacklist:

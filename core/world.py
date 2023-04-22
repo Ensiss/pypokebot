@@ -363,20 +363,31 @@ class Connection(utils.RawStruct):
          self.dest_bank,
          self.dest_map) = super().__init__(addr)
 
-    def get(info):
+    def get(info, m=None):
         def _findConnection(m, ctype):
             for connection in m.connects:
                 if connection.type == ctype:
                     return connection
             return None
         if type(info) is ConnectType:
-            return _findConnection(db.getCurrentMap(), info)
+            if m is None:
+                m = db.getCurrentMap()
+            return _findConnection(m, info)
         elif type(info) is Connection:
             return info
         elif type(info) is int:
-            return db.getCurrentMap().connects[info]
+            if m is None:
+                m = db.getCurrentMap()
+            return m.connects[info]
         print("connection error: invalid argument:", info)
         return None
+
+    def getMatchingConnection(self):
+        dmap = db.banks[self.dest_bank][self.dest_map]
+        if self.type == ConnectType.NONE or self.type > ConnectType.RIGHT:
+            return None
+        inv = [ConnectType.UP, ConnectType.DOWN, ConnectType.RIGHT, ConnectType.LEFT]
+        return Connection.get(inv[self.type - ConnectType.DOWN], dmap)
 
     def getMatchingEntry(self, x, y):
         """
